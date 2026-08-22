@@ -5,8 +5,7 @@ compatibility_date = "2026-01-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "daily-app-factory-db"
-# ローカル開発用のプレースホルダ。デプロイ前に `npx wrangler d1 create daily-app-factory-db` で発行された ID に置き換える
-database_id = "00000000-0000-0000-0000-000000000000"
+database_id = "feb9e026-feb7-41ca-b1ec-bfbc2c7f66d4"
 migrations_dir = "../../migrations"
 
 [[r2_buckets]]
