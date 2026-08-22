@@ -3,12 +3,19 @@ import { listApps, getApp, facets, sortKeys } from "./store.js";
 import { renderGallery } from "./gallery.js";
 import { runPipeline, statusReport } from "./pipeline.js";
 import { collectSignals } from "./signals.js";
+import { submitBrief, briefPage } from "./briefs.js";
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     const pathname = url.pathname;
     try {
+      if (pathname === "/api/briefs" && request.method === "POST") {
+        return submitBrief(request, env);
+      }
+      if (pathname.startsWith("/brief/")) {
+        return briefPage(request, env, pathname);
+      }
       if (request.method === "POST") {
         if (pathname === "/_run") return admin(env, request, async () => {
           const body = await request.json().catch(() => ({}));
@@ -118,6 +125,7 @@ async function galleryPage(request, env, url) {
     perPage,
     params,
     facets: f,
+    siteKey: env.TURNSTILE_SITE_KEY || "1x00000000000000000000AA",
   });
   return new Response(html, { headers: htmlHeaders() });
 }

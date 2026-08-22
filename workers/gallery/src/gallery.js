@@ -43,7 +43,7 @@ function card(app) {
   </article>`;
 }
 
-export function renderGallery({ apps, total, page, perPage, params, facets }) {
+export function renderGallery({ apps, total, page, perPage, params, facets, siteKey }) {
   const qs = buildQuery(params);
   const totalPages = Math.max(1, Math.ceil(total / perPage));
   const axisKeys = Object.keys(AXIS_LABELS);
@@ -124,6 +124,18 @@ h2{font-size:1.02rem;line-height:1.4}h2 a{color:inherit;text-decoration:none}h2 
 .pager{display:flex;justify-content:center;gap:14px;margin-top:22px}
 .pager a{color:var(--accent);text-decoration:none;border:1px solid var(--border);border-radius:999px;padding:7px 18px}
 .clear{display:inline-block;margin-bottom:8px;font-size:0.8rem;color:var(--accent)}
+.brief-box{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:16px 18px;margin-bottom:16px}
+.brief-box h2{font-size:1rem;margin-bottom:2px}
+.brief-box .sub{color:var(--text-soft);font-size:0.8rem;margin-bottom:10px}
+#briefForm{display:flex;flex-direction:column;gap:10px}
+#briefForm textarea{width:100%;min-height:74px;background:var(--bg-soft);border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;font-size:0.9rem;color:var(--text);font-family:inherit;resize:vertical;outline:none}
+#briefForm textarea:focus{border-color:var(--accent)}
+#briefForm .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+#briefForm select{background:var(--bg-soft);border:1.5px solid var(--border);border-radius:10px;padding:8px 10px;font-size:0.85rem;color:var(--text);font-family:inherit}
+#briefForm .btn-submit{background:var(--accent);color:#1a130a;border:none;border-radius:999px;padding:10px 22px;font-size:0.9rem;font-weight:700;cursor:pointer;font-family:inherit}
+#briefForm .btn-submit:hover{filter:brightness(1.08)}
+#briefResult{font-size:0.85rem;margin-top:8px;color:var(--text-soft)}
+#briefResult a{color:var(--accent)}
 footer{margin-top:30px;text-align:center;font-size:0.75rem;color:var(--text-soft);opacity:0.7}
 @media(max-width:480px){.grid{grid-template-columns:1fr}}
 </style>
@@ -134,6 +146,24 @@ footer{margin-top:30px;text-align:center;font-size:0.75rem;color:var(--text-soft
     <h1>日刊アプリ工房</h1>
     <p class="sub">AI が毎日 1 本作る、動く単一 HTML アプリのギャラリー（全 ${total} 本）</p>
   </header>
+  <section class="brief-box">
+    <h2>お題を投げる</h2>
+    <p class="sub">AI が次の制作で優先的に作ります（1日1本・投稿順）。追跡ページで進み具合を見られます。</p>
+    <form id="briefForm">
+      <textarea id="briefText" minlength="10" maxlength="300" placeholder="10〜300文字でお題を書いてください（例: 3分後にそっと消えるメモ）" aria-label="お題" required></textarea>
+      <div class="row">
+        <select id="briefAxis" aria-label="軸">
+          <option value="">軸はおまかせ</option>
+          <option value="laugh">笑わせる</option>
+          <option value="lighten">心を軽くする</option>
+          <option value="productivity">生産性</option>
+        </select>
+        <div class="cf-turnstile" data-sitekey="${esc(siteKey)}" data-callback="onTurnstileReady"></div>
+        <button class="btn-submit" type="submit">投稿する</button>
+      </div>
+    </form>
+    <p id="briefResult" role="status"></p>
+  </section>
   <section class="controls">
     <form class="search-form" method="get" action="/">
       <input class="search" type="search" name="q" value="${esc(params.q || "")}" placeholder="タイトル・タグライン・タグで検索" aria-label="検索">
@@ -166,6 +196,38 @@ footer{margin-top:30px;text-align:center;font-size:0.75rem;color:var(--text-soft
   <footer>日刊アプリ工房 · このサイトのアプリは AI が自動生成しています</footer>
 </div>
 <script>
+var turnstileToken = "";
+function onTurnstileReady(t){ turnstileToken = t; }
+document.getElementById("briefForm").addEventListener("submit", async function(e){
+  e.preventDefault();
+  var res = document.getElementById("briefResult");
+  res.textContent = "送信中...";
+  try {
+    var resp = await fetch("/api/briefs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        text: document.getElementById("briefText").value,
+        axis_hint: document.getElementById("briefAxis").value,
+        turnstile_token: turnstileToken
+      })
+    });
+    var data = await resp.json();
+    if (!resp.ok) { res.textContent = data.error || "エラーが発生しました"; return; }
+    if (data.status === "rejected") {
+      res.textContent = "このお題は却下されました: " + (data.reason || "");
+      return;
+    }
+    res.textContent = "受け付けました（待ち " + data.position + " 件目・着手予定 " + data.eta + "）。";
+    var a = document.createElement("a");
+    a.href = data.trackingUrl;
+    a.textContent = "追跡ページを開く";
+    res.appendChild(document.createTextNode(" "));
+    res.appendChild(a);
+  } catch (err) {
+    res.textContent = "通信エラーが発生しました。再試行してください。";
+  }
+});
 document.getElementById("sort").addEventListener("change", function(){
   var u = new URL(location.href);
   u.searchParams.set("sort", this.value);
@@ -173,6 +235,7 @@ document.getElementById("sort").addEventListener("change", function(){
   location.href = u;
 });
 </script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </body>
 </html>`;
 }

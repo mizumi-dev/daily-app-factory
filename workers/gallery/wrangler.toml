@@ -27,3 +27,7 @@ max_retries = 0
 
 [triggers]
 crons = ["0 17 * * *", "0 19 * * *"]
+
+[vars]
+# Turnstile テスト用サイトキー（常に通過）。本番公開前にダッシュボードで作成したキーへ差し替える
+TURNSTILE_SITE_KEY = "1x00000000000000000000AA"
