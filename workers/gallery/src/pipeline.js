@@ -161,8 +161,9 @@ ${directive.signalRef ? `根拠シグナル: ${directive.signalRef}` : ""}
   return { spec };
 }
 
-async function implementOnce(env, { spec, directive, axis, failures, costState }) {
+async function implementOnce(env, { spec, directive, axis, failures, costState, attempt }) {
   const system = `あなたは「日刊アプリ工房」の実装担当。企画書とハウススタイル規約に従い、単一 HTML ファイルを実装してください。
+企画書の success_check の全項目を必ず満たす実装にすること（各項目をコード内でどう満たすかを実装前に考える）。
 ===== ハウススタイル規約（固定） =====
 ${HOUSE_STYLE}
 ===== 出力ルール =====
@@ -173,8 +174,10 @@ ${failures.length ? `===== 前回の検証指摘（必ず修正すること） =
 軸: ${axis}（${AXIS_LABELS[axis]}）
 ===== 企画書 (spec) =====
 ${JSON.stringify(spec, null, 2)}`;
-  const { text, usage } = await chat(env, { model: FLASH, system, user, thinking: false });
-  const cost = estimateCost(FLASH, usage);
+  // コスト戦略: 通常は Flash（非思考）。2回失敗した最終試行のみ Pro（非思考）へエスカレーション。
+  const model = attempt >= 3 ? PRO : FLASH;
+  const { text, usage } = await chat(env, { model, system, user, thinking: false });
+  const cost = estimateCost(model, usage);
   costState.usd += cost.usd;
   costState.in += cost.inTok;
   costState.out += cost.outTok;
@@ -290,7 +293,7 @@ export async function runPipeline(env, ctx, opts = {}) {
   let failures = [];
   let attempts = 0;
   for (attempts = 1; attempts <= MAX_ATTEMPTS; attempts++) {
-    html = await implementOnce(env, { spec, directive, axis, failures, costState });
+    html = await implementOnce(env, { spec, directive, axis, failures, costState, attempt: attempts });
     const mech = mechanicalCheck(html);
     if (!mech.ok) {
       failures = mech.failures;
