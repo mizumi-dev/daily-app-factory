@@ -1,0 +1,900 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3分後に灰になる怒りの焚き火</title>
+<style>
+:root{
+  --bg:#0f0e17;
+  --bg-soft:#1a1a2e;
+  --panel:rgba(255,255,255,0.04);
+  --text:#e8e4da;
+  --text-soft:#b8b0a5;
+  --accent:#ff8c42;
+  --accent-hot:#ff6b35;
+  --accent-cool:#5b7f8b;
+  --btn-bg:#2a2632;
+  --btn-border:#4a3f55;
+  --btn-text:#f0e9df;
+  --textarea-bg:#1c1a24;
+  --textarea-border:#3a3447;
+  --danger:0.72;
+}
+@media(prefers-color-scheme:light){
+  :root{
+    --bg:#faf3e8;
+    --bg-soft:#f0e8d8;
+    --panel:rgba(0,0,0,0.04);
+    --text:#3d3a33;
+    --text-soft:#7c7466;
+    --btn-bg:#fff8ef;
+    --btn-border:#d4c4ad;
+    --btn-text:#5d5545;
+    --textarea-bg:#fffdf9;
+    --textarea-border:#d9cdbc;
+    --danger:0.5;
+  }
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{height:100%}
+body{
+  font-family:"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic","YuGothic",Meiryo,"Noto Sans JP",sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100%;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  padding:16px 12px 0;
+  line-height:1.6;
+  transition:background 0.3s ease,color 0.3s ease;
+  -webkit-font-smoothing:antialiased;
+}
+main{
+  max-width:520px;
+  width:100%;
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+header{
+  text-align:center;
+  margin-bottom:12px;
+  width:100%;
+}
+h1{
+  font-size:clamp(1.35rem,4.6vw,1.7rem);
+  font-weight:700;
+  letter-spacing:0.02em;
+  line-height:1.35;
+  color:var(--text);
+}
+.tagline{
+  font-size:0.92rem;
+  color:var(--text-soft);
+  margin-top:4px;
+  letter-spacing:0.03em;
+}
+.stage-wrap{
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  margin-bottom:10px;
+  position:relative;
+}
+.stage{
+  width:min(340px,82vw);
+  height:min(320px,72vw);
+  position:relative;
+  border-radius:24px;
+  background:radial-gradient(ellipse at 50% 80%,rgba(255,140,66,0.12) 0%,rgba(0,0,0,0.25) 62%,transparent 78%),var(--panel);
+  overflow:visible;
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+  transition:background 0.4s ease;
+}
+.fire-pit{
+  position:absolute;
+  bottom:16px;
+  width:min(260px,68vw);
+  height:min(190px,50vw);
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+}
+.stone-ring{
+  position:absolute;
+  bottom:-4px;
+  left:50%;
+  transform:translateX(-50%);
+  width:min(230px,58vw);
+  height:min(58px,15vw);
+}
+.stone{
+  position:absolute;
+  width:22px;
+  height:16px;
+  background:linear-gradient(160deg,#6b6258,#837a6c 40%,#4e4840 90%);
+  border-radius:7px 7px 6px 6px;
+  box-shadow:inset 0 2px 3px rgba(255,255,255,0.15),0 2px 4px rgba(0,0,0,0.3);
+}
+.stone-ring .stone:nth-child(1){left:4%;bottom:2px;transform:rotate(-7deg)}
+.stone-ring .stone:nth-child(2){left:16%;bottom:9px;transform:rotate(3deg);width:18px;height:14px}
+.stone-ring .stone:nth-child(3){left:28%;bottom:15px;transform:rotate(-2deg)}
+.stone-ring .stone:nth-child(4){left:41%;bottom:18px;transform:rotate(6deg);width:20px;height:15px}
+.stone-ring .stone:nth-child(5){left:54%;bottom:18px;transform:rotate(-5deg)}
+.stone-ring .stone:nth-child(6){left:67%;bottom:15px;transform:rotate(4deg);width:18px;height:14px}
+.stone-ring .stone:nth-child(7){left:79%;bottom:8px;transform:rotate(-3deg)}
+.stone-ring .stone:nth-child(8){left:89%;bottom:2px;transform:rotate(8deg);width:19px;height:13px}
+.logs{
+  position:absolute;
+  bottom:10px;
+  left:50%;
+  transform:translateX(-50%);
+  width:min(220px,55vw);
+  height:40px;
+}
+.log{
+  position:absolute;
+  background:linear-gradient(180deg,#7a5c3e,#5d432b 65%,#3e2d1d);
+  border-radius:8px;
+  box-shadow:inset 0 -2px 3px rgba(0,0,0,0.35),0 3px 6px rgba(0,0,0,0.3);
+}
+.log1{width:130px;height:20px;left:12px;bottom:4px;transform:rotate(8deg)}
+.log2{width:120px;height:18px;left:48px;bottom:2px;transform:rotate(-10deg)}
+.log3{width:100px;height:16px;left:70px;bottom:10px;transform:rotate(25deg)}
+.flames{
+  position:absolute;
+  bottom:22px;
+  left:50%;
+  transform:translateX(-50%);
+  width:min(190px,48vw);
+  height:min(140px,36vw);
+  pointer-events:none;
+}
+.flame{
+  position:absolute;
+  border-radius:50% 50% 42% 42% / 62% 62% 36% 36%;
+  transform-origin:50% 100%;
+  filter:blur(1.5px);
+}
+.flame-outer{
+  width:100%;
+  height:100%;
+  background:radial-gradient(ellipse at 50% 85%,rgba(255,70,20,0.55) 0%,rgba(210,60,10,0.45) 35%,rgba(140,40,10,0.35) 60%,transparent 78%);
+  animation:flicker1 1.6s ease-in-out infinite alternate;
+  opacity:0.9;
+  mix-blend-mode:screen;
+}
+.flame-mid{
+  width:72%;
+  height:78%;
+  left:14%;
+  bottom:2%;
+  background:radial-gradient(ellipse at 50% 90%,#ff8c42 0%,#f5672a 38%,rgba(245,103,42,0.55) 55%,transparent 75%);
+  animation:flicker2 1.2s ease-in-out infinite alternate;
+  opacity:0.95;
+  mix-blend-mode:screen;
+}
+.flame-inner{
+  width:44%;
+  height:56%;
+  left:28%;
+  bottom:4%;
+  background:radial-gradient(ellipse at 50% 92%,#ffd54f 0%,#ffb347 35%,rgba(255,179,61,0.5) 55%,transparent 72%);
+  animation:flicker3 0.9s ease-in-out infinite alternate;
+  opacity:0.95;
+  mix-blend-mode:screen;
+}
+@keyframes flicker1{
+  0%{transform:scaleX(0.92) scaleY(0.96) rotate(-1.5deg)}
+  40%{transform:scaleX(1.03) scaleY(1.05) rotate(1.2deg)}
+  70%{transform:scaleX(0.96) scaleY(0.98) rotate(-0.8deg)}
+  100%{transform:scaleX(1.06) scaleY(1.04) rotate(1.8deg)}
+}
+@keyframes flicker2{
+  0%{transform:scaleX(0.9) scaleY(1) rotate(1.5deg)}
+  35%{transform:scaleX(1.05) scaleY(0.95) rotate(-1.3deg)}
+  65%{transform:scaleX(0.97) scaleY(1.08) rotate(0.8deg)}
+  100%{transform:scaleX(1.04) scaleY(0.98) rotate(-1.7deg)}
+}
+@keyframes flicker3{
+  0%{transform:scaleX(1) scaleY(0.96) rotate(-2deg)}
+  30%{transform:scaleX(0.94) scaleY(1.06) rotate(1.8deg)}
+  60%{transform:scaleX(1.05) scaleY(0.94) rotate(-1.2deg)}
+  100%{transform:scaleX(0.96) scaleY(1.03) rotate(2.2deg)}
+}
+.paper{
+  position:absolute;
+  bottom:34px;
+  left:50%;
+  transform:translateX(-50%) rotate(-2.5deg);
+  width:min(150px,42vw);
+  min-height:min(110px,31vw);
+  background:linear-gradient(170deg,#fffdf5 0%,#f7f0e0 85%,#eee5cf 100%);
+  color:#4a3d2d;
+  border-radius:4px;
+  box-shadow:0 4px 14px rgba(0,0,0,0.25),inset 0 0 0 1px rgba(180,160,120,0.35),0 0 0 1px rgba(255,255,255,0.4) inset;
+  padding:16px 14px;
+  font-size:0.82rem;
+  line-height:1.55;
+  word-break:break-word;
+  overflow:hidden;
+  z-index:3;
+  transition:filter 1.8s ease,transform 1.8s ease,background 1.8s ease;
+  text-shadow:0 1px 0 rgba(255,255,255,0.4);
+}
+.paper::after{
+  content:"";
+  position:absolute;
+  top:0;right:0;bottom:0;left:0;
+  border-radius:4px;
+  background:linear-gradient(170deg,rgba(255,252,240,0) 30%,rgba(205,180,140,0.18) 80%,rgba(170,145,105,0.3) 100%);
+  pointer-events:none;
+}
+.paper .paper-text{
+  position:relative;
+  z-index:2;
+  white-space:pre-wrap;
+  overflow-wrap:break-word;
+  transition:opacity 1.5s ease;
+}
+.smoke{
+  position:absolute;
+  bottom:50px;
+  left:50%;
+  transform:translateX(-50%);
+  pointer-events:none;
+  z-index:2;
+}
+.smoke-wisp{
+  position:absolute;
+  width:16px;
+  height:28px;
+  border-radius:50% 50% 50% 50%;
+  background:radial-gradient(ellipse at 50% 60%,rgba(200,190,175,0.2) 0%,rgba(170,160,145,0.1) 45%,transparent 75%);
+  filter:blur(3px);
+  animation:rise 3.2s ease-out infinite;
+  opacity:0;
+}
+.smoke-wisp:nth-child(1){left:-18px;animation-delay:0s}
+.smoke-wisp:nth-child(2){left:0;animation-delay:1.1s}
+.smoke-wisp:nth-child(3){left:14px;animation-delay:2.2s}
+@keyframes rise{
+  0%{transform:translateY(0) scale(0.7);opacity:0}
+  25%{opacity:0.7}
+  70%{opacity:0.3}
+  100%{transform:translateY(-70px) scale(1.6) translateX(6px);opacity:0}
+}
+.countdown{
+  font-size:1.15rem;
+  font-weight:600;
+  letter-spacing:0.06em;
+  color:var(--text);
+  background:var(--panel);
+  padding:6px 18px;
+  border-radius:999px;
+  margin-top:4px;
+  position:relative;
+  z-index:5;
+  backdrop-filter:blur(4px);
+  -webkit-backdrop-filter:blur(4px);
+  transform:translateY(-6px);
+  transition:opacity 0.4s ease;
+}
+.input-area{
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  align-items:center;
+  transition:opacity 0.35s ease,transform 0.35s ease;
+}
+.input-area.hidden{
+  opacity:0;
+  pointer-events:none;
+  transform:translateY(8px);
+  position:absolute;
+  z-index:-1;
+}
+textarea{
+  width:100%;
+  min-height:90px;
+  max-height:160px;
+  background:var(--textarea-bg);
+  border:1.5px solid var(--textarea-border);
+  border-radius:12px;
+  padding:14px 16px;
+  font-size:0.95rem;
+  color:var(--text);
+  resize:vertical;
+  outline:none;
+  font-family:inherit;
+  line-height:1.6;
+  transition:border-color 0.25s ease,box-shadow 0.25s ease;
+}
+textarea:focus{
+  border-color:var(--accent);
+  box-shadow:0 0 0 3px rgba(255,140,66,0.2);
+}
+textarea::placeholder{
+  color:var(--text-soft);
+  opacity:0.65;
+}
+.btn{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  background:var(--btn-bg);
+  color:var(--btn-text);
+  border:1.5px solid var(--btn-border);
+  border-radius:999px;
+  padding:12px 28px;
+  font-size:0.95rem;
+  font-weight:600;
+  letter-spacing:0.04em;
+  cursor:pointer;
+  outline:none;
+  transition:background 0.25s ease,border-color 0.25s ease,transform 0.15s ease,box-shadow 0.25s ease;
+  font-family:inherit;
+  user-select:none;
+  -webkit-tap-highlight-color:transparent;
+}
+.btn:hover{
+  background:rgba(255,140,66,0.12);
+  border-color:var(--accent);
+  box-shadow:0 4px 16px rgba(255,140,66,0.2);
+}
+.btn:focus-visible{
+  outline:3px solid var(--accent);
+  outline-offset:2px;
+  box-shadow:0 4px 16px rgba(255,140,66,0.25);
+}
+.btn:active{
+  transform:scale(0.97);
+}
+.hint{
+  font-size:0.82rem;
+  color:var(--text-soft);
+  opacity:0.85;
+  text-align:center;
+  letter-spacing:0.02em;
+}
+.ash-result{
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:10px;
+  padding:8px 0 4px;
+  transition:opacity 0.5s ease;
+}
+.ash-result.hidden{
+  display:none;
+}
+.ash-pile{
+  width:70px;
+  height:26px;
+  background:radial-gradient(ellipse at 50% 50%,#a89f93 0%,#8b8378 45%,#6c655a 78%,transparent 100%);
+  border-radius:50%;
+  opacity:0.8;
+  filter:blur(1px);
+  animation:ash-fade 1.6s ease-out forwards;
+}
+@keyframes ash-fade{
+  0%{opacity:0;transform:scale(0.6)}
+  60%{opacity:0.85;transform:scale(1.05)}
+  100%{opacity:0.75;transform:scale(1)}
+}
+.ash-message{
+  font-size:1.05rem;
+  font-weight:600;
+  letter-spacing:0.04em;
+  text-align:center;
+}
+.ash-sub{
+  font-size:0.88rem;
+  color:var(--text-soft);
+  text-align:center;
+  letter-spacing:0.02em;
+}
+footer{
+  width:100%;
+  max-width:520px;
+  text-align:center;
+  padding:10px 0 20px;
+  font-size:0.75rem;
+  color:var(--text-soft);
+  opacity:0.7;
+  letter-spacing:0.02em;
+  border-top:1px solid var(--panel);
+  margin-top:12px;
+}
+.sr-only{
+  position:absolute;
+  width:1px;
+  height:1px;
+  padding:0;
+  margin:-1px;
+  overflow:hidden;
+  clip:rect(0,0,0,0);
+  white-space:nowrap;
+  border:0;
+}
+@media(prefers-reduced-motion:reduce){
+  .flame-outer,.flame-mid,.flame-inner{
+    animation:none !important;
+  }
+  .smoke-wisp{
+    animation:none !important;
+    display:none;
+  }
+  .paper{
+    transition:none;
+  }
+  .ash-pile{
+    animation:none;
+  }
+  .btn{
+    transition:none;
+  }
+  .stage{
+    transition:none;
+  }
+  .countdown{
+    transition:none;
+  }
+  .input-area{
+    transition:none;
+  }
+}
+@media(max-width:400px){
+  .stage{
+    height:min(280px,66vw);
+  }
+  .fire-pit{
+    bottom:10px;
+  }
+  .paper{
+    width:min(120px,36vw);
+    min-height:min(85px,26vw);
+    padding:10px 8px;
+    font-size:0.72rem;
+  }
+  h1{
+    font-size:1.2rem;
+  }
+  .tagline{
+    font-size:0.8rem;
+  }
+}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>3分後に灰になる怒りの焚き火</h1>
+    <p class="tagline">書いた怒りは、そっと灰に変えて手放す。</p>
+  </header>
+
+  <div class="stage-wrap">
+    <div class="stage" id="stage" aria-label="焚き火のステージ">
+      <div class="fire-pit" id="firePit" aria-hidden="true">
+        <div class="stone-ring">
+          <span class="stone"></span><span class="stone"></span><span class="stone"></span>
+          <span class="stone"></span><span class="stone"></span><span class="stone"></span>
+          <span class="stone"></span><span class="stone"></span>
+        </div>
+        <div class="logs">
+          <span class="log log1"></span><span class="log log2"></span><span class="log log3"></span>
+        </div>
+        <div class="flames" id="flames" aria-hidden="true">
+          <span class="flame flame-outer"></span>
+          <span class="flame flame-mid"></span>
+          <span class="flame flame-inner"></span>
+        </div>
+        <div class="paper" id="paper" aria-label="燃えている紙">
+          <div class="paper-text" id="paperText"></div>
+        </div>
+        <div class="smoke" id="smoke" aria-hidden="true">
+          <span class="smoke-wisp"></span>
+          <span class="smoke-wisp"></span>
+          <span class="smoke-wisp"></span>
+        </div>
+      </div>
+    </div>
+    <div class="countdown" id="countdown" aria-live="polite"></div>
+  </div>
+
+  <section class="input-area" id="inputArea">
+    <label class="sr-only" for="note">燃やしたい怒りやモヤモヤ</label>
+    <textarea id="note" placeholder="ふつふつと、何か書いてみてください。" maxlength="800"></textarea>
+    <button class="btn" id="burnBtn" type="button">焚き火にくべる</button>
+    <p class="hint">書いた内容は 3 分後に灰となり、どこにも残りません。</p>
+  </section>
+
+  <section class="ash-result hidden" id="ashResult" aria-live="polite">
+    <div class="ash-pile" aria-hidden="true"></div>
+    <p class="ash-message">灰になりました。</p>
+    <p class="ash-sub">そっと、手放せましたね。また何かあれば、くべに来てください。</p>
+    <button class="btn" id="resetBtn" type="button">もう一度くべる</button>
+  </section>
+</main>
+
+<footer>
+  <p>生成日: 2026-08-22　|　お題の出所: ユーザー投稿</p>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+  try{
+
+    var state = "idle";
+    var noteText = "";
+    var burnProgress = 0;
+    var timerId = null;
+    var rafId = null;
+    var countdownId = null;
+    var startTime = 0;
+    var totalMs = 3 * 60 * 1000;
+    var emberId = null;
+
+    var stage = document.getElementById("stage");
+    var firePit = document.getElementById("firePit");
+    var flames = document.getElementById("flames");
+    var paper = document.getElementById("paper");
+    var paperText = document.getElementById("paperText");
+    var smoke = document.getElementById("smoke");
+    var countdownEl = document.getElementById("countdown");
+    var inputArea = document.getElementById("inputArea");
+    var textarea = document.getElementById("note");
+    var burnBtn = document.getElementById("burnBtn");
+    var ashResult = document.getElementById("ashResult");
+    var resetBtn = document.getElementById("resetBtn");
+
+    function formatTime(ms){
+      var totalSec = Math.ceil(ms/1000);
+      var m = Math.floor(totalSec/60);
+      var s = totalSec%60;
+      if(s<10) s = "0"+s;
+      return m+":"+s;
+    }
+
+    function setBurnProgress(p){
+      burnProgress = Math.max(0,Math.min(1,p));
+      var bright = 1 - burnProgress * 0.85;
+      var gray = burnProgress;
+      var scale = 1 - burnProgress * 0.55;
+      var rot = -2.5 + burnProgress * 9;
+      var textOpacity = Math.max(0,1 - burnProgress * 1.15);
+      var bgHue = 45 - burnProgress * 45;
+      var bgLight = 97 - burnProgress * 62;
+      var filterStr = "brightness(" + bright + ") grayscale(" + gray + ")";
+      if(burnProgress > 0.18){
+        filterStr += " sepia(" + (burnProgress * 0.55) + ")";
+      }
+      paper.style.filter = filterStr;
+      paper.style.transform = "translateX(-50%) rotate(" + rot + "deg) scale(" + scale + ")";
+      if(paperText){
+        paperText.style.opacity = textOpacity;
+      }
+      if(burnProgress < 0.25){
+        paper.style.background = "linear-gradient(170deg,#fdf8ed 0%,#f2ead8 85%,#e7dcc2 100%)";
+      }else if(burnProgress < 0.55){
+        paper.style.background = "linear-gradient(170deg,#d9c1a0 0%,#b8987a 60%,#96785c 100%)";
+      }else if(burnProgress < 0.82){
+        paper.style.background = "linear-gradient(170deg,#8a6d53 0%,#5d4938 65%,#3d3024 100%)";
+      }else{
+        paper.style.background = "linear-gradient(170deg,#3a2e24 0%,#241b13 70%,#151009 100%)";
+      }
+      var flameOpacity = Math.max(0.45,1 - burnProgress * 0.3);
+      if(flames){
+        flames.style.opacity = flameOpacity;
+      }
+      if(smoke){
+        smoke.style.opacity = burnProgress < 0.25 ? 0 : Math.min(1, burnProgress * 1.8);
+      }
+      if(countdownEl){
+        var remaining = totalMs - (burnProgress * totalMs);
+        if(remaining <= 0) remaining = 0;
+        countdownEl.textContent = "残り " + formatTime(Math.min(remaining, totalMs));
+        if(burnProgress >= 0.85){
+          countdownEl.style.opacity = "0.6";
+        }else{
+          countdownEl.style.opacity = "1";
+        }
+      }
+    }
+
+    function startEmbers(){
+      if(emberId) clearInterval(emberId);
+      emberId = setInterval(function(){
+        try{
+          var ember = document.createElement("span");
+          ember.className = "ember";
+          ember.style.position = "absolute";
+          ember.style.bottom = "30px";
+          ember.style.left = (50 + (Math.random()*40 - 20)) + "%";
+          ember.style.width = "5px";
+          ember.style.height = "5px";
+          ember.style.borderRadius = "50%";
+          ember.style.background = "radial-gradient(circle,#ffd54f 0%,#ff8c42 55%,transparent 80%)";
+          ember.style.zIndex = "4";
+          ember.style.pointerEvents = "none";
+          ember.style.opacity = "0";
+          ember.style.boxShadow = "0 0 8px rgba(255,180,80,0.6)";
+          firePit.appendChild(ember);
+          var dur = 1200 + Math.random() * 900;
+          var startTime = performance.now();
+          function animateEmber(now){
+            var t = (now - startTime) / dur;
+            if(t >= 1){
+              if(ember.parentNode) ember.parentNode.removeChild(ember);
+              return;
+            }
+            var x = Math.sin(t * Math.PI * 2 + Math.random() * 0.3) * 24;
+            var y = -t * 90;
+            var scale = 1 - t * 0.7;
+            ember.style.transform = "translate(" + x + "px," + y + "px) scale(" + scale + ")";
+            ember.style.opacity = t < 0.15 ? t / 0.15 : Math.max(0, 1 - (t - 0.15) / 0.85);
+            requestAnimationFrame(animateEmber);
+          }
+          requestAnimationFrame(animateEmber);
+        }catch(emberErr){}
+      }, 220);
+    }
+
+    function stopEmbers(){
+      if(emberId){
+        clearInterval(emberId);
+        emberId = null;
+      }
+      var existingEmbers = firePit.querySelectorAll(".ember");
+      for(var i=0;i<existingEmbers.length;i++){
+        if(existingEmbers[i].parentNode) existingEmbers[i].parentNode.removeChild(existingEmbers[i]);
+      }
+    }
+
+    function completeBurn(){
+      stopTimer();
+      stopEmbers();
+      state = "ash";
+      if(inputArea) inputArea.classList.add("hidden");
+      if(ashResult) ashResult.classList.remove("hidden");
+      if(paper){
+        paper.style.opacity = "0";
+        paper.style.transform = "translateX(-50%) rotate(6deg) scale(0.02)";
+        paper.style.filter = "brightness(0.1) grayscale(1) sepia(0.6)";
+        paperText.style.opacity = "0";
+      }
+      if(flames){
+        flames.style.opacity = "0.2";
+      }
+      if(smoke){
+        smoke.style.opacity = "0";
+      }
+      if(countdownEl){
+        countdownEl.textContent = "灰になりました";
+        countdownEl.style.opacity = "0.75";
+      }
+      if(stage){
+        stage.style.background = "radial-gradient(ellipse at 50% 85%,rgba(150,150,150,0.1) 0%,transparent 55%),var(--panel)";
+      }
+    }
+
+    function stopTimer(){
+      if(rafId){
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+      if(countdownId){
+        clearInterval(countdownId);
+        countdownId = null;
+      }
+      if(timerId){
+        clearTimeout(timerId);
+        timerId = null;
+      }
+    }
+
+    function beginBurn(){
+      try{
+        noteText = (textarea && textarea.value) ? textarea.value.trim() : "";
+        if(noteText.length === 0){
+          noteText = "……";
+        }
+        if(noteText.length > 800){
+          noteText = noteText.substring(0,800);
+        }
+        state = "burning";
+        startTime = performance.now();
+        burnProgress = 0;
+        setBurnProgress(0);
+        if(paper){
+          paper.style.opacity = "1";
+          paper.style.display = "block";
+        }
+        if(paperText){
+          paperText.textContent = noteText;
+          paperText.style.opacity = "1";
+        }
+        if(inputArea){
+          inputArea.classList.add("hidden");
+        }
+        if(ashResult){
+          ashResult.classList.add("hidden");
+        }
+        if(flames){
+          flames.style.opacity = "1";
+        }
+        if(smoke){
+          smoke.style.opacity = "0";
+        }
+        if(stage){
+          stage.style.background = "radial-gradient(ellipse at 50% 80%,rgba(255,140,66,0.2) 0%,rgba(255,100,40,0.07) 50%,transparent 75%),var(--panel)";
+        }
+        if(countdownEl){
+          countdownEl.textContent = "残り " + formatTime(totalMs);
+          countdownEl.style.opacity = "1";
+        }
+        startEmbers();
+
+        rafId = requestAnimationFrame(function tick(now){
+          try{
+            var elapsed = now - startTime;
+            var p = elapsed / totalMs;
+            setBurnProgress(p);
+            if(p >= 1){
+              completeBurn();
+              return;
+            }
+            rafId = requestAnimationFrame(tick);
+          }catch(tickErr){
+            completeBurn();
+          }
+        });
+
+        countdownId = setInterval(function(){
+          try{
+            if(state !== "burning") return;
+            var elapsed = performance.now() - startTime;
+            var remaining = totalMs - elapsed;
+            if(remaining <= 0){
+              remaining = 0;
+              clearInterval(countdownId);
+              countdownId = null;
+            }
+            if(countdownEl){
+              countdownEl.textContent = "残り " + formatTime(remaining);
+            }
+          }catch(intervalErr){}
+        }, 500);
+
+        timerId = setTimeout(function(){
+          try{
+            completeBurn();
+          }catch(timeoutErr){
+            completeBurn();
+          }
+        }, totalMs + 50);
+      }catch(burnErr){
+        state = "idle";
+        if(inputArea) inputArea.classList.remove("hidden");
+        if(countdownEl) countdownEl.textContent = "";
+      }
+    }
+
+    function resetToIdle(){
+      try{
+        stopTimer();
+        stopEmbers();
+        state = "idle";
+        burnProgress = 0;
+        noteText = "";
+        if(textarea){
+          textarea.value = "";
+          textarea.disabled = false;
+        }
+        if(paper){
+          paper.style.opacity = "0";
+          paper.style.display = "block";
+          paper.style.transform = "translateX(-50%) rotate(-2.5deg) scale(1)";
+          paper.style.filter = "none";
+          paper.style.background = "linear-gradient(170deg,#fdf8ed 0%,#f2ead8 85%,#e7dcc2 100%)";
+        }
+        if(paperText){
+          paperText.textContent = "";
+          paperText.style.opacity = "1";
+        }
+        if(flames){
+          flames.style.opacity = "0.45";
+        }
+        if(smoke){
+          smoke.style.opacity = "0";
+        }
+        if(stage){
+          stage.style.background = "radial-gradient(ellipse at 50% 80%,rgba(255,140,66,0.12) 0%,rgba(0,0,0,0.25) 62%,transparent 78%),var(--panel)";
+        }
+        if(countdownEl){
+          countdownEl.textContent = "";
+          countdownEl.style.opacity = "1";
+        }
+        if(ashResult){
+          ashResult.classList.add("hidden");
+        }
+        if(inputArea){
+          inputArea.classList.remove("hidden");
+        }
+        if(textarea){
+          textarea.focus();
+        }
+      }catch(resetErr){
+        if(inputArea) inputArea.classList.remove("hidden");
+      }
+    }
+
+    function init(){
+      try{
+        setBurnProgress(0);
+        paper.style.opacity = "0";
+        paper.style.display = "block";
+        flames.style.opacity = "0.45";
+        smoke.style.opacity = "0";
+        countdownEl.textContent = "";
+        ashResult.classList.add("hidden");
+        inputArea.classList.remove("hidden");
+        textarea.disabled = false;
+        textarea.focus();
+
+        burnBtn.addEventListener("click", function(e){
+          try{
+            e.preventDefault();
+            if(state === "idle"){
+              beginBurn();
+            }
+          }catch(clickErr){}
+        });
+
+        textarea.addEventListener("keydown", function(e){
+          try{
+            if(e.key === "Enter" && (e.ctrlKey || e.metaKey)){
+              e.preventDefault();
+              if(state === "idle"){
+                beginBurn();
+              }
+            }
+          }catch(keyErr){}
+        });
+
+        resetBtn.addEventListener("click", function(e){
+          try{
+            e.preventDefault();
+            resetToIdle();
+          }catch(resetClickErr){}
+        });
+
+      }catch(initErr){
+        document.body.innerHTML += '<p style="text-align:center;padding:20px;color:#888;">ひと休みしてください。再読み込みすると復帰します。</p>';
+      }
+    }
+
+    if(document.readyState === "loading"){
+      document.addEventListener("DOMContentLoaded", init);
+    }else{
+      init();
+    }
+
+  }catch(globalErr){
+    try{
+      document.body.innerHTML += '<p style="text-align:center;padding:20px;color:#888;">読込中に少し休憩が必要です。再読み込みしてください。</p>';
+    }catch(ignored){}
+  }
+})();
+</script>
+</body>
+</html>

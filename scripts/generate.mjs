@@ -169,13 +169,38 @@ function extractJson(raw) {
   }
 }
 
+function extractOutputText(payload) {
+  // Responses API の生レスポンスは output_text を持たないことがあるため、
+  // output 配列の content から直接テキストを取り出す。
+  if (typeof payload.output_text === "string" && payload.output_text.length > 0) {
+    return payload.output_text;
+  }
+  const parts = [];
+  for (const item of payload.output ?? []) {
+    for (const part of item.content ?? []) {
+      if (part.type === "output_text" && typeof part.text === "string") {
+        parts.push(part.text);
+      }
+    }
+  }
+  return parts.join("\n");
+}
+
+function normalizeSlug(raw) {
+  const slug = String(raw ?? "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+  return slug || "app";
+}
+
 function validateSpec(spec) {
   if (!spec || typeof spec !== "object") return "spec が JSON オブジェクトではありません";
   const required = ["title", "slug", "tagline", "axis", "tags", "who", "job", "interactions", "success_check"];
   for (const field of required) {
     if (!spec[field]) return `フィールド ${field} がありません`;
   }
-  if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(spec.slug)) return "slug は英語の小文字ハイフン形式にしてください";
   if (!(spec.feasible === true || spec.feasible === false)) return "feasible が true/false ではありません";
   return null;
 }
@@ -251,10 +276,12 @@ async function planApp({ key, model, brief, axis, catalog }) {
         `  tokens: in=${cost.inputTokens} (cached=${cost.cached}) out=${cost.outputTokens} cost=$${cost.usd.toFixed(4)}`
       );
     }
-    const raw = payload.output_text ?? "";
+    const raw = extractOutputText(payload);
     const spec = extractJson(raw);
     const validationError = validateSpec(spec);
     if (validationError) {
+      console.warn(`  [企画] 検証エラー: ${validationError}`);
+      console.warn(`  [企画] 生テキスト先頭: ${raw.slice(0, 400).replace(/\n/g, " ")}`);
       feedback = `出力が要件を満たしていません: ${validationError}。必ず指定されたフィールドを持つ JSON だけを出力してください。`;
       continue;
     }
@@ -266,6 +293,8 @@ async function planApp({ key, model, brief, axis, catalog }) {
       console.error("企画が3回とも実現不可能と判定されました。今日は作らずに終了します。");
       process.exit(1);
     }
+    spec.slug = normalizeSlug(spec.slug);
+    spec.feasible = spec.feasible === true;
     return { spec, attempts: attempt };
   }
   throw new Error("企画ステージが収束しませんでした");
@@ -297,7 +326,7 @@ ${JSON.stringify(spec, null, 2)}`;
       `  tokens: in=${cost.inputTokens} (cached=${cost.cached}) out=${cost.outputTokens} cost=$${cost.usd.toFixed(4)}`
     );
   }
-  const raw = payload.output_text ?? "";
+  const raw = extractOutputText(payload);
   return stripCodeFence(raw);
 }
 
@@ -309,15 +338,20 @@ function stripCodeFence(raw) {
 }
 
 function todayIso() {
-  const now = new Date();
-  const jst = new Date(now.getTime() + (9 - now.getTimezoneOffset() / 60) * 3600 * 1000);
-  return jst.toISOString().slice(0, 10);
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Tokyo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
 }
 
 function defaultAxis() {
-  const now = new Date();
-  const jst = new Date(now.getTime() + (9 - now.getTimezoneOffset() / 60) * 3600 * 1000);
-  return AXIS_BY_WEEKDAY[jst.getUTCDay()];
+  const weekday = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Tokyo", weekday: "short" }).format(
+    new Date()
+  );
+  const map = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  return AXIS_BY_WEEKDAY[map[weekday] ?? 1];
 }
 
 async function main() {

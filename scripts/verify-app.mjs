@@ -37,7 +37,9 @@ export function verifyHtml(htmlPath) {
     warnings.push("viewport メタタグがありません");
   }
   if (!/prefers-color-scheme/i.test(html)) warnings.push("ダークモード対応（prefers-color-scheme）がありません");
-  if (!/\btry\b[\s\S]{0,200}\bcatch\b/i.test(html)) warnings.push("try/catch が見当たりません");
+  if (!/\btry\s*\{/i.test(html) || !/\bcatch\s*\(/i.test(html)) {
+    warnings.push("try/catch が見当たりません");
+  }
   if (!/localStorage/i.test(html)) warnings.push("localStorage の使用が見当たりません");
   if (!/生成日/i.test(html)) warnings.push("フッターに「生成日」の記載がありません");
   if (!/お題の出所|ユーザー投稿|自動/i.test(html)) warnings.push("フッターにお題の出所の記載がありません");
