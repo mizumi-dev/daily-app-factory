@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>不安を霧にして呼吸で晴らすガイド</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      color-scheme: light dark;
+      --bg: #f2efe9;
+      --fg: #2d2a26;
+      --accent: #3a6b5b;
+      --accent-soft: #b5c9b8;
+      --card: #ffffffcc;
+      --shadow: 0 4px 16px rgba(0,0,0,0.05);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1e1f1c;
+        --fg: #e8e2d8;
+        --accent: #88aa9a;
+        --accent-soft: #3a4a42;
+        --card: #282824cc;
+        --shadow: 0 4px 20px rgba(0,0,0,0.3);
+      }
+    }
+    body {
+      background: var(--bg);
+      color: var(--fg);
+      font-family: "Hiragino Sans", "Noto Sans JP", "Yu Gothic", system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      margin: 0;
+      transition: background 0.3s, color 0.3s;
+    }
+    .app {
+      width: 100%;
+      max-width: 520px;
+      background: var(--card);
+      backdrop-filter: blur(6px);
+      border-radius: 28px;
+      padding: 24px 20px 20px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--accent-soft);
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    h1 {
+      font-size: 1.4rem;
+      line-height: 1.4;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      letter-spacing: 0.02em;
+    }
+    .tagline {
+      font-size: 0.9rem;
+      opacity: 0.8;
+      margin-top: -8px;
+      font-weight: 400;
+    }
+    .input-area {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    label {
+      font-size: 0.8rem;
+      font-weight: 500;
+      opacity: 0.9;
+    }
+    .input-row {
+      display: flex;
+      gap: 8px;
+    }
+    input[type="text"] {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--accent-soft);
+      border-radius: 40px;
+      padding: 12px 16px;
+      font-size: 1rem;
+      color: var(--fg);
+      outline: none;
+      transition: border 0.2s;
+    }
+    input[type="text"]:focus {
+      border-color: var(--accent);
+    }
+    button {
+      background: var(--accent);
+      border: none;
+      color: #fff;
+      font-weight: 600;
+      padding: 0 18px;
+      border-radius: 40px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: background 0.2s, transform 0.2s;
+      letter-spacing: 0.03em;
+    }
+    button:hover { filter: brightness(1.05); }
+    button:active { transform: scale(0.97); }
+    .canvas-wrap {
+      position: relative;
+      width: 100%;
+      border-radius: 20px;
+      overflow: hidden;
+      background: transparent;
+      aspect-ratio: 1 / 1;
+      max-height: 340px;
+      margin: 4px 0;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      border-radius: 20px;
+      outline: 1px solid var(--accent-soft);
+    }
+    .breath-status {
+      text-align: center;
+      font-size: 1.1rem;
+      font-weight: 500;
+      padding: 4px 0;
+      letter-spacing: 0.1em;
+      min-height: 2em;
+    }
+    .hint {
+      font-size: 0.75rem;
+      opacity: 0.7;
+      text-align: center;
+      margin-top: -6px;
+    }
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .btn-small {
+      background: transparent;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      padding: 8px 14px;
+      border-radius: 40px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+    .btn-small:hover { background: var(--accent-soft); }
+    footer {
+      text-align: center;
+      font-size: 0.65rem;
+      opacity: 0.6;
+      padding-top: 8px;
+      border-top: 1px dashed var(--accent-soft);
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      * { animation: none !important; transition: none !important; }
+      canvas { animation: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <h1>🌫️ 霧晴らし呼吸</h1>
+    <p class="tagline">もやもやを霧に見立てて、呼吸のリズムでゆっくり手放す。</p>
+
+    <div class="input-area">
+      <label for="fogInput">気がかりなこと（任意）</label>
+      <div class="input-row">
+        <input type="text" id="fogInput" placeholder="例: 明日の会議が不安…" autocomplete="off">
+        <button id="startBtn" aria-label="霧を発生させる">霧を出す</button>
+      </div>
+    </div>
+
+    <div class="canvas-wrap">
+      <canvas id="fogCanvas" width="340" height="340"></canvas>
+    </div>
+
+    <div class="breath-status" id="statusText" aria-live="polite">呼吸をはじめましょう</div>
+    <p class="hint">◯ 円がひろがる: 吸う ／ とまる: 止める ／ ちぢむ: 吐く</p>
+
+    <div class="controls">
+      <button class="btn-small" id="resetBtn" type="button">🔄 やり直す</button>
+      <button class="btn-small" id="idleBtn" type="button">⏸️ 呼吸ポーズ</button>
+    </div>
+
+    <footer>
+      <span>生成日: 2026-08-22</span>
+      <span>お題の出所: ユーザー投稿</span>
+    </footer>
+  </main>
+
+  <script>
+    (function() {
+      try {
+        const canvas = document.getElementById('fogCanvas');
+        const ctx = canvas.getContext('2d');
+        const statusEl = document.getElementById('statusText');
+        const inputEl = document.getElementById('fogInput');
+        const startBtn = document.getElementById('startBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const idleBtn = document.getElementById('idleBtn');
+
+        // ---- 設定 ----
+        const DPR = window.devicePixelRatio || 1;
+        let width = 340, height = 340;
+        // 粒子システム
+        let particles = [];
+        let maxParticles = 0;
+        let targetParticles = 0;
+        let animId = null;
+        let particlesActive = false;
+
+        // 呼吸サイクル管理
+        let cycleState = 'idle'; // idle, inhale, hold, exhale
+        let cycleTimer = 0;
+        const CYCLE = { inhale: 2800, hold: 1800, exhale: 3400 }; // ms
+        let lastFrame = 0;
+        let breathPhase = 0; // 0..1 のフェーズインジケーター
+        let isBreathing = false;
+        let holdRemain = 0;
+
+        // 現在の視覚霧濃度 (0..1) 粒子数の割合
+        let density = 0;       // 0-1
+        let visualScale = 0.4; // 呼吸ガイドの円
+
+        // ---- 粒子生成 ----
+        function createFogParticle(seedIndex = 0) {
+          return {
+            x: Math.random() * width,
+            y: Math.random() * height,
+            r: 2 + Math.random() * 6,
+            opacity: 0.15 + Math.random() * 0.35,
+            driftX: (Math.random() - 0.5) * 0.15,
+            driftY: -0.02 - Math.random() * 0.08,
+            seed: seedIndex,
+          };
+        }
+
+        function generateParticles(count) {
+          const newParticles = [];
+          for (let i = 0; i < count; i++) {
+            newParticles.push(createFogParticle(i));
+          }
+          return newParticles;
+        }
+
+        // ---- 入力テキストから霧生成 (個数は任意・だけど量感) ----
+        function spawnFogFromText(text) {
+          const trimmed = text.trim();
+          // テキストの長さに応じて粒子数 (最大 150)
+          const wordCount = trimmed.length > 0 ? trimmed.split(/\s+/).filter(w => w.length > 0).length : 0;
+          let base = Math.min(60 + wordCount * 6, 150);
+          if (trimmed.length === 0) base = 40; // デフォルトでも少し霧
+
+          maxParticles = Math.floor(base);
+          // あらかじめ全粒子リセット
+          particles = generateParticles(maxParticles);
+          density = 1; // 始めは最大
+          targetParticles = maxParticles;
+          updateVisualFromDensity();
+          // 呼吸を開始状態に
+          isBreathing = true;
+          cycleState = 'inhale';
+          cycleTimer = 0;
+          holdRemain = 0;
+          statusEl.textContent = 'ゆっくり吸って…';
+        }
+
+        // 粒子と見た目を密度に合わせて間引く
+        function updateVisualFromDensity() {
+          const desired = Math.floor(maxParticles * density);
+          if (particles.length > desired) {
+            // ランダムに削減（でも吐くときは消えていく様子）
+            const surplus = particles.length - desired;
+            for (let i = 0; i < surplus; i++) {
+              if (particles.length > 0) {
+                const idx = Math.floor(Math.random() * particles.length);
+                particles.splice(idx, 1);
+              }
+            }
+          } else if (particles.length < desired) {
+            // 吸うときに微増？ 吐く時に減るのでリズム上、吸う時は増やすことはしないが、空気を吸って霧が濃くなることはないのでそのまま。
+            // ならば density依存で粒子は減るだけ。
+          }
+        }
+
+        // 呼吸ステップに応じてdensityを変化させる
+        function applyBreathStep(dt) {
+          if (!isBreathing) return;
+
+          if (cycleState === 'inhale') {
+            // 吸う: 霧は増えない (寧ろ少し澄む? だが光を取り込むイメージ) — ここでは吸入時は高密度維持、少量霧がふわっと
+            density = Math.min(1, density + 0.02);
+            cycleTimer -= dt;
+            if (cycleTimer <= 0) {
+              cycleState = 'hold';
+              cycleTimer = CYCLE.hold;
+              holdRemain = CYCLE.hold;
+              statusEl.textContent = 'そのまま止めて…';
+            }
+          } else if (cycleState === 'hold') {
+            // 止める: 変化なし
+            cycleTimer -= dt;
+            if (cycleTimer <= 0) {
+              cycleState = 'exhale';
+              cycleTimer = CYCLE.exhale;
+              statusEl.textContent = 'ゆっくり吐いて〜霧が晴れます';
+            }
+          } else if (cycleState === 'exhale') {
+            // 吐く: 霧を大きく減らす (心の重さ)
+            density = Math.max(0, density - dt * 0.00012); // ゆっくり減少
+            cycleTimer -= dt;
+            if (cycleTimer <= 0) {
+              cycleState = 'inhale';
+              cycleTimer = CYCLE.inhale;
+              statusEl.textContent = '吸って…';
+            }
+          }
+          // デバッグ表示
+          if (cycleState === 'exhale') statusEl.textContent = '吐いています…霧が消えていく';
+          else if (cycleState === 'inhale') statusEl.textContent = '吸っています…';
+          else if (cycleState === 'hold') statusEl.textContent = '息を止めています…';
+
+          // densityに基づいて粒子数調整
+          if (particlesActive) {
+            updateVisualFromDensity();
+          }
+
+          // 完了判定: 霧がほぼ消えたら
+          if (density <= 0.05 && particles.length < 2 && isBreathing) {
+            statusEl.textContent = '🌤️ 心が軽くなりました。あなたは大丈夫。';
+            isBreathing = false;
+            cycleState = 'idle';
+          }
+        }
+
+        // ---- 描画 ----
+        function draw() {
+          ctx.clearRect(0, 0, width, height);
+
+          // 背景のグラデーション(霧の色)
+          const grad = ctx.createRadialGradient(width/2, height/2, 10, width/2, height/2, width*0.7);
+          grad.addColorStop(0, 'rgba(210,220,205,0.15)');
+          grad.addColorStop(0.7, 'rgba(170,190,180,0.08)');
+          ctx.fillStyle = grad;
+          ctx.fillRect(0, 0, width, height);
+
+          // 呼吸円ガイド (拡大縮小)
+          const time = performance.now() * 0.001;
+          const baseR = width * 0.22;
+          let r = baseR;
+          if (cycleState === 'inhale') {
+            const phase = 1 - Math.max(0, cycleTimer / CYCLE.inhale);
+            r = baseR * (0.7 + 0.4 * phase);
+            visualScale = 0.7 + 0.4 * phase;
+          } else if (cycleState === 'hold') {
+            r = baseR * 1.1;
+            visualScale = 1.1;
+          } else if (cycleState === 'exhale') {
+            const phase = 1 - Math.max(0, cycleTimer / CYCLE.exhale);
+            r = baseR * (1.1 - 0.4 * phase);
+            visualScale = 1.1 - 0.4 * phase;
+          } else {
+            // idle
+            r = baseR * (0.9 + 0.05 * Math.sin(time * 2));
+            visualScale = 0.9;
+          }
+
+          // 円ガイド描画
+          ctx.beginPath();
+          ctx.arc(width/2, height/2, r, 0, Math.PI * 2);
+          ctx.strokeStyle = '#b8c5bb';
+          ctx.lineWidth = 2;
+          ctx.setLineDash([6, 6]);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.fillStyle = 'rgba(185, 200, 185, 0.15)';
+          ctx.fill();
+
+          // 粒子描画
+          for (let p of particles) {
+            p.x += p.driftX * 0.6;
+            p.y += p.driftY * 0.6;
+            if (p.x < -10) p.x = width + 10;
+            if (p.x > width + 10) p.x = -10;
+            if (p.y < -10) p.y = height + 10;
+            if (p.y > height + 10) p.y = -10;
+
+            const fogOpacity = Math.min(0.65, p.opacity * (0.4 + density));
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.r * (0.6 + density * 0.6), 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(210, 220, 215, ${fogOpacity})`;
+            ctx.fill();
+          }
+        }
+
+        // ---- メインループ ----
+        let lastTimestamp = 0;
+        function animate(timestamp) {
+          if (!lastTimestamp) lastTimestamp = timestamp;
+          const dt = Math.min(100, timestamp - lastTimestamp);
+          lastTimestamp = timestamp;
+
+          // 呼吸状態更新 (dtミリ秒)
+          if (isBreathing && cycleState !== 'idle') {
+            applyBreathStep(dt);
+          }
+
+          // 粒子の動き＋描画
+          draw();
+
+          // 次のフレーム
+          animId = requestAnimationFrame(animate);
+        }
+
+        // ---- 初期化 ----
+        function resizeCanvas() {
+          const dpr = window.devicePixelRatio || 1;
+          const rect = canvas.getBoundingClientRect();
+          width = rect.width;
+          height = rect.height;
+          canvas.width = Math.floor(width * DPR);
+          canvas.height = Math.floor(height * DPR);
+          ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+        }
+
+        window.addEventListener('resize', () => {
+          resizeCanvas();
+        });
+
+        function resetAll() {
+          particles = [];
+          maxParticles = 0;
+          density = 0;
+          isBreathing = false;
+          cycleState = 'idle';
+          statusEl.textContent = '呼吸をはじめましょう';
+          inputEl.value = '';
+          targetParticles = 0;
+        }
+
+        // ---- イベント ----
+        startBtn.addEventListener('click', () => {
+          const text = inputEl.value;
+          if (!text.trim()) {
+            // 空でもエラーにならず、デフォルト霧
+            spawnFogFromText('');
+          } else {
+            spawnFogFromText(text);
+          }
+          particlesActive = true;
+        });
+
+        resetBtn.addEventListener('click', () => {
+          resetAll();
+          particlesActive = false;
+          // キャンバスは空へ
+          draw();
+        });
+
+        idleBtn.addEventListener('click', () => {
+          // ポーズ⇔再開
+          if (isBreathing) {
+            isBreathing = false;
+            idleBtn.textContent = '▶️ 呼吸再開';
+            statusEl.textContent = '休憩中 (呼吸ポーズ)';
+          } else {
+            if (particles.length === 0 && maxParticles === 0) {
+              // まだ霧がない場合は霧を発生
+              spawnFogFromText(inputEl.value);
+            }
+            isBreathing = true;
+            idleBtn.textContent = '⏸️ 呼吸ポーズ';
+            if (cycleState === 'idle') {
+              cycleState = 'inhale';
+              cycleTimer = CYCLE.inhale;
+            }
+          }
+        });
+
+        // 初回起動: アニメーション開始
+        function loadInitial() {
+          resizeCanvas();
+          // 最初は霧をほんの少し表示
+          maxParticles = 8;
+          particles = generateParticles(8);
+          density = 0.2;
+          particlesActive = false;
+          isBreathing = false;
+          // アニメーションループ開始
+          lastTimestamp = 0;
+          animId = requestAnimationFrame(animate);
+        }
+
+        loadInitial();
+
+        // フォームのSubmitにエンターで霧発生
+        inputEl.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            startBtn.click();
+          }
+        });
+
+      } catch (e) {
+        // 安全: エラーをUIに表示せず、基本的に動作
+        console.warn(e);
+        const st = document.getElementById('statusText');
+        if (st) st.textContent = '予期しない状態ですが、リロードして試してください。';
+      }
+    })();
+  </script>
+</body>
+</html>

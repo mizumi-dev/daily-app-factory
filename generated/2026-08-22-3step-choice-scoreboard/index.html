@@ -1,0 +1,728 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>迷いを3ステップで断ち切る選択肢スコア表</title>
+<style>
+:root{--bg:#f8fafc;--card:#ffffff;--text:#1e293b;--text2:#64748b;--border:#e2e8f0;--primary:#6366f1;--primary-hover:#4f46e5;--primary-light:#eef2ff;--winner-bg:#fef3c7;--winner-border:#f59e0b;--winner-text:#92400e;--success:#10b981;--danger:#ef4444;--shadow:0 1px 3px rgba(0,0,0,.08),0 4px 12px rgba(0,0,0,.05);--radius:12px;--transition:.18s ease}
+@media(prefers-color-scheme:dark){:root{--bg:#0f172a;--card:#1e293b;--text:#f1f5f9;--text2:#94a3b8;--border:#334155;--primary:#818cf8;--primary-hover:#6366f1;--primary-light:#312e81;--winner-bg:#78350f;--winner-border:#f59e0b;--winner-text:#fbbf24;--success:#34d399;--danger:#f87171;--shadow:0 1px 3px rgba(0,0,0,.3),0 4px 12px rgba(0,0,0,.25)}}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Meiryo","BIZ UDPGothic",system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh;transition:background var(--transition),color var(--transition)}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
+.app{max-width:720px;margin:0 auto;padding:20px 16px 40px}
+header{text-align:center;margin-bottom:24px;padding:8px 0}
+header h1{font-size:1.6rem;font-weight:700;letter-spacing:.02em;margin-bottom:6px;word-break:keep-all;overflow-wrap:anywhere}
+.tagline{font-size:.95rem;color:var(--text2)}
+.step-indicator{display:flex;align-items:center;justify-content:center;margin:0 auto 28px;max-width:500px;gap:0}
+.step-dot{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:70px}
+.step-circle{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.95rem;border:2px solid var(--border);background:var(--card);color:var(--text2);transition:all var(--transition)}
+.step-dot.active .step-circle{background:var(--primary);border-color:var(--primary);color:#fff}
+.step-dot.completed .step-circle{background:var(--success);border-color:var(--success);color:#fff}
+.step-dot.completed .step-circle::after{content:"✓";font-size:.9rem}
+.step-label{font-size:.7rem;color:var(--text2);text-align:center;white-space:nowrap}
+.step-dot.active .step-label{color:var(--primary);font-weight:600}
+.step-connector{flex:1;height:2px;background:var(--border);margin:0 4px;min-width:12px}
+.step-connector.filled{background:var(--success)}
+.step-panel{display:none;animation:fadeIn .25s ease}
+.step-panel.visible{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.step-panel{animation:none}}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px;box-shadow:var(--shadow)}
+.card h2{font-size:1.15rem;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.card .hint{font-size:.85rem;color:var(--text2);margin-bottom:14px}
+.input-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.input-row input[type="text"],.input-row select{flex:1;min-width:120px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:.95rem;background:var(--bg);color:var(--text);transition:border var(--transition)}
+.input-row input[type="text"]:focus,.input-row select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-light)}
+.btn{padding:10px 18px;border:1px solid var(--border);border-radius:8px;font-size:.9rem;font-weight:600;cursor:pointer;background:var(--card);color:var(--text);transition:all var(--transition);white-space:nowrap}
+.btn:hover:not(:disabled){border-color:var(--primary);color:var(--primary)}
+.btn:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-primary{background:var(--primary);border-color:var(--primary);color:#fff}
+.btn-primary:hover:not(:disabled){background:var(--primary-hover);border-color:var(--primary-hover);color:#fff}
+.btn-danger{color:var(--danger)}
+.btn-danger:hover:not(:disabled){border-color:var(--danger);color:var(--danger)}
+.btn-success{background:var(--success);border-color:var(--success);color:#fff}
+.btn-success:hover:not(:disabled){opacity:.85;color:#fff}
+.btn-sm{padding:6px 10px;font-size:.8rem}
+.item-list{list-style:none;margin:0 0 12px;display:flex;flex-direction:column;gap:8px}
+.item-list li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-weight:500}
+.item-list .item-name{flex:1;word-break:break-word}
+.item-list .weight-tag{background:var(--primary-light);color:var(--primary);padding:2px 10px;border-radius:999px;font-size:.75rem;font-weight:700;white-space:nowrap}
+.counter{font-size:.8rem;color:var(--text2);margin-bottom:8px}
+.nav-buttons{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+.nav-buttons .spacer{flex:1}
+.choice-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:var(--shadow)}
+.choice-card .choice-name{font-size:1.05rem;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.criterion-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--border);flex-wrap:wrap}
+.criterion-row:first-of-type{border-top:none}
+.criterion-row .criterion-name{flex:1;font-size:.9rem;font-weight:500;min-width:80px}
+.criterion-row .weight-tag{background:var(--primary-light);color:var(--primary);padding:2px 10px;border-radius:999px;font-size:.72rem;font-weight:700;white-space:nowrap}
+.score-buttons{display:flex;gap:4px}
+.score-btn{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--border);background:var(--bg);color:var(--text);font-size:.85rem;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all var(--transition)}
+.score-btn:hover:not(.selected){border-color:var(--primary);color:var(--primary)}
+.score-btn.selected{background:var(--primary);border-color:var(--primary);color:#fff;box-shadow:0 0 0 3px var(--primary-light)}
+.score-btn:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.result-header{text-align:center;margin-bottom:20px}
+.result-header .big-label{font-size:1.3rem;font-weight:700;color:var(--primary);margin-bottom:4px}
+.result-header .sub-label{color:var(--text2);font-size:.9rem}
+.winner-card{background:var(--winner-bg);border:2px solid var(--winner-border);border-radius:var(--radius);padding:24px 20px;text-align:center;margin-bottom:20px;box-shadow:0 4px 16px rgba(245,158,11,.15)}
+.winner-card .winner-title{font-size:.9rem;font-weight:600;color:var(--winner-text);margin-bottom:4px;letter-spacing:.05em}
+.winner-card .winner-name{font-size:2rem;font-weight:800;color:var(--winner-text);word-break:break-word;overflow-wrap:anywhere}
+.winner-card .winner-score{font-size:1.2rem;font-weight:700;color:var(--winner-text);margin-top:4px}
+.ranking-list{display:flex;flex-direction:column;gap:12px;margin-bottom:20px}
+.rank-item{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;display:flex;flex-direction:column;gap:8px;box-shadow:var(--shadow)}
+.rank-item .rank-header{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.rank-item .rank-badge{width:28px;height:28px;border-radius:50%;background:var(--bg);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;flex-shrink:0}
+.rank-item.rank-1 .rank-badge{background:var(--winner-border);border-color:var(--winner-border);color:#fff}
+.rank-item .rank-name{flex:1;font-weight:600;font-size:1rem;word-break:break-word}
+.rank-item .rank-score{font-weight:700;font-size:1.05rem;color:var(--primary)}
+.rank-bar{height:8px;border-radius:4px;background:var(--bg);overflow:hidden;border:1px solid var(--border)}
+.rank-bar-fill{height:100%;border-radius:4px;background:var(--primary);transition:width .4s ease}
+.rank-1 .rank-bar-fill{background:var(--winner-border)}
+.tie-warning{background:#fff7ed;border:1.5px solid #f97316;border-radius:var(--radius);padding:16px;margin-bottom:20px;color:#9a3412;font-weight:500}
+@media(prefers-color-scheme:dark){.tie-warning{background:#431407;border-color:#f97316;color:#fdba74}}
+.tie-warning strong{display:block;font-size:1rem;margin-bottom:6px}
+.result-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:8px}
+.confirmed-badge{display:inline-block;background:var(--success);color:#fff;padding:6px 16px;border-radius:999px;font-weight:700;font-size:.85rem;margin-top:8px}
+footer{margin-top:32px;padding-top:16px;border-top:1px solid var(--border);text-align:center;font-size:.8rem;color:var(--text2)}
+footer p{margin-bottom:4px}
+.error-box{display:none;background:#fef2f2;border:1.5px solid var(--danger);border-radius:8px;padding:16px;margin-bottom:16px;color:#991b1b;font-weight:500}
+@media(prefers-color-scheme:dark){.error-box{background:#450a0a;color:#fca5a5}}
+.visually-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+@media(max-width:420px){header h1{font-size:1.3rem}.step-dot{min-width:60px}.step-circle{width:32px;height:32px;font-size:.85rem}.step-label{font-size:.65rem}.score-btn{width:30px;height:30px;font-size:.78rem}.criterion-row{gap:6px}.winner-card .winner-name{font-size:1.5rem}}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <div id="error-box" class="error-box" role="alert"></div>
+  <header>
+    <h1>迷いを3ステップで断ち切る選択肢スコア表</h1>
+    <p class="tagline">基準と重みで、迷いを数字で断ち切る3ステップ決断ツール</p>
+  </header>
+
+  <nav class="step-indicator" aria-label="進捗状況" id="step-indicator">
+    <div class="step-dot" data-step="1" id="dot-1">
+      <div class="step-circle"><span class="step-number-text">1</span></div>
+      <span class="step-label">選択肢入力</span>
+    </div>
+    <div class="step-connector" id="conn-1"></div>
+    <div class="step-dot" data-step="2" id="dot-2">
+      <div class="step-circle"><span class="step-number-text">2</span></div>
+      <span class="step-label">基準設定</span>
+    </div>
+    <div class="step-connector" id="conn-2"></div>
+    <div class="step-dot" data-step="3" id="dot-3">
+      <div class="step-circle"><span class="step-number-text">3</span></div>
+      <span class="step-label">スコア評価</span>
+    </div>
+  </nav>
+
+  <main>
+    <section class="step-panel visible" id="panel-step1" tabindex="-1" aria-label="ステップ1 選択肢入力">
+      <div class="card">
+        <h2>1. 選択肢を入力</h2>
+        <p class="hint">決めたい選択肢を2〜5件入力してください（3〜5件がおすすめ）。例：A案・B案・C案</p>
+        <div class="input-row">
+          <label for="choice-input" class="visually-hidden">選択肢の名前</label>
+          <input type="text" id="choice-input" placeholder="例：A案、ラーメン、青い服…" maxlength="40" autocomplete="off">
+          <button id="add-choice-btn" class="btn btn-primary" type="button">追加</button>
+        </div>
+        <div class="counter" id="choice-counter">0件 / 最大5件</div>
+        <ul class="item-list" id="choice-list"></ul>
+        <div class="nav-buttons">
+          <button id="to-step2-btn" class="btn btn-primary" type="button" disabled>次へ：基準を設定 →</button>
+        </div>
+      </div>
+      <div style="text-align:center;margin-top:8px">
+        <button id="sample-btn" class="btn btn-sm" type="button">サンプルを入れて試す</button>
+      </div>
+    </section>
+
+    <section class="step-panel" id="panel-step2" tabindex="-1" aria-label="ステップ2 基準設定">
+      <div class="card">
+        <h2>2. 比較基準と重要度を設定</h2>
+        <p class="hint">比較する基準を最大5つ追加し、重要度（1〜5）を設定してください。重要度5が最も重視されます。</p>
+        <div class="input-row">
+          <label for="criterion-input" class="visually-hidden">基準の名前</label>
+          <input type="text" id="criterion-input" placeholder="例：価格、味、手軽さ…" maxlength="30" autocomplete="off">
+          <div class="score-buttons" role="group" aria-label="重要度を選択" id="weight-selector">
+            <button class="score-btn selected" data-weight="3" aria-pressed="true" aria-label="重要度 3">3</button>
+            <button class="score-btn" data-weight="1" aria-pressed="false" aria-label="重要度 1">1</button>
+            <button class="score-btn" data-weight="2" aria-pressed="false" aria-label="重要度 2">2</button>
+            <button class="score-btn" data-weight="4" aria-pressed="false" aria-label="重要度 4">4</button>
+            <button class="score-btn" data-weight="5" aria-pressed="false" aria-label="重要度 5">5</button>
+          </div>
+          <button id="add-criterion-btn" class="btn btn-primary" type="button">追加</button>
+        </div>
+        <div class="counter" id="criterion-counter">0件 / 最大5件</div>
+        <ul class="item-list" id="criterion-list"></ul>
+        <div class="nav-buttons">
+          <button id="back-to-step1-btn" class="btn" type="button">← 戻る</button>
+          <div class="spacer"></div>
+          <button id="to-step3-btn" class="btn btn-primary" type="button" disabled>次へ：スコアを評価 →</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="step-panel" id="panel-step3" tabindex="-1" aria-label="ステップ3 スコア評価">
+      <div class="card">
+        <h2>3. スコアを評価</h2>
+        <p class="hint">各選択肢について、各基準の満足度を1〜5で評価してください（初期値は3）。</p>
+        <div id="score-matrix"></div>
+        <div class="nav-buttons">
+          <button id="back-to-step2-btn" class="btn" type="button">← 戻る</button>
+          <div class="spacer"></div>
+          <button id="decide-btn" class="btn btn-success" type="button">⚡ 決断する</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="step-panel" id="panel-result" tabindex="-1" aria-label="決断結果">
+      <div id="result-content"></div>
+    </section>
+  </main>
+
+  <footer>
+    <p>生成日: 2026-08-22</p>
+    <p>お題の出所: ユーザー投稿</p>
+  </footer>
+</div>
+
+<script>
+(function() {
+  'use strict';
+  var STORAGE_KEY = '3step-choice-scoreboard-v1';
+
+  function getDefaultState() {
+    return {
+      choices: [],
+      criteria: [],
+      scores: {},
+      view: 'step1',
+      confirmed: false,
+      idCounter: 0
+    };
+  }
+
+  function loadState() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        var parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') {
+          if (!parsed.choices) parsed.choices = [];
+          if (!parsed.criteria) parsed.criteria = [];
+          if (!parsed.scores) parsed.scores = {};
+          if (!parsed.view) parsed.view = 'step1';
+          if (parsed.confirmed === undefined) parsed.confirmed = false;
+          if (parsed.idCounter === undefined) parsed.idCounter = 0;
+          return parsed;
+        }
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  function saveState(s) {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+    } catch (e) {}
+  }
+
+  function generateId(state) {
+    state.idCounter++;
+    return 'id-' + Date.now().toString(36) + '-' + state.idCounter + '-' + Math.random().toString(36).slice(2, 6);
+  }
+
+  function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  var state = loadState() || getDefaultState();
+  var selectedWeight = 3;
+
+  function showError(msg) {
+    var el = document.getElementById('error-box');
+    if (el) {
+      el.textContent = msg;
+      el.style.display = 'block';
+    }
+  }
+  function hideError() {
+    var el = document.getElementById('error-box');
+    if (el) el.style.display = 'none';
+  }
+
+  function render() {
+    try {
+      hideError();
+      renderStepIndicator();
+      renderStep1();
+      renderStep2();
+      renderStep3();
+      showView(state.view);
+      saveState(state);
+    } catch (e) {
+      showError('表示中にエラーが発生しました: ' + e.message);
+    }
+  }
+
+  function renderStepIndicator() {
+    var steps = ['step1', 'step2', 'step3'];
+    var stepNums = { step1: 1, step2: 2, step3: 3 };
+    for (var i = 1; i <= 3; i++) {
+      var dot = document.getElementById('dot-' + i);
+      var circle = dot.querySelector('.step-circle');
+      var numText = circle.querySelector('.step-number-text');
+      dot.classList.remove('active', 'completed');
+      var currentView = state.view === 'result' ? 'step3' : state.view;
+      var currentNum = stepNums[currentView] || 1;
+      if (i < currentNum) {
+        dot.classList.add('completed');
+        numText.textContent = '';
+      } else if (i === currentNum) {
+        dot.classList.add('active');
+        numText.textContent = String(i);
+      } else {
+        numText.textContent = String(i);
+      }
+    }
+    var conn1 = document.getElementById('conn-1');
+    var conn2 = document.getElementById('conn-2');
+    conn1.classList.toggle('filled', (stepNums[state.view === 'result' ? 'step3' : state.view] || 1) > 1);
+    conn2.classList.toggle('filled', (stepNums[state.view === 'result' ? 'step3' : state.view] || 1) > 2);
+  }
+
+  function showView(view) {
+    var panels = ['step1', 'step2', 'step3', 'result'];
+    for (var i = 0; i < panels.length; i++) {
+      var p = document.getElementById('panel-' + panels[i]);
+      if (p) p.classList.toggle('visible', panels[i] === view);
+    }
+    if (view === 'result') {
+      renderResult();
+    }
+    var panelEl = document.getElementById('panel-' + view);
+    if (panelEl) {
+      panelEl.focus({ preventScroll: true });
+    }
+  }
+
+  function goTo(view) {
+    if (view === 'step2' && state.choices.length < 2) return;
+    if (view === 'step3' && (state.choices.length < 2 || state.criteria.length < 1)) return;
+    state.view = view;
+    if (view !== 'result') state.confirmed = false;
+    render();
+  }
+
+  function addChoice() {
+    var input = document.getElementById('choice-input');
+    var name = input.value.trim();
+    if (!name) return;
+    if (state.choices.length >= 5) {
+      showError('選択肢は最大5件までです。');
+      return;
+    }
+    var id = generateId(state);
+    state.choices.push({ id: id, name: name });
+    state.scores[id] = {};
+    for (var i = 0; i < state.criteria.length; i++) {
+      state.scores[id][state.criteria[i].id] = 3;
+    }
+    input.value = '';
+    input.focus();
+    render();
+  }
+
+  function removeChoice(id) {
+    state.choices = state.choices.filter(function(c) { return c.id !== id; });
+    delete state.scores[id];
+    render();
+  }
+
+  function selectWeight(w) {
+    selectedWeight = w;
+    var btns = document.querySelectorAll('#weight-selector .score-btn');
+    for (var i = 0; i < btns.length; i++) {
+      var bw = parseInt(btns[i].getAttribute('data-weight'), 10);
+      var isSel = bw === w;
+      btns[i].classList.toggle('selected', isSel);
+      btns[i].setAttribute('aria-pressed', isSel ? 'true' : 'false');
+    }
+  }
+
+  function addCriterion() {
+    var input = document.getElementById('criterion-input');
+    var name = input.value.trim();
+    if (!name) return;
+    if (state.criteria.length >= 5) {
+      showError('基準は最大5つまでです。');
+      return;
+    }
+    var id = generateId(state);
+    state.criteria.push({ id: id, name: name, weight: selectedWeight });
+    for (var i = 0; i < state.choices.length; i++) {
+      state.scores[state.choices[i].id][id] = 3;
+    }
+    input.value = '';
+    input.focus();
+    render();
+  }
+
+  function removeCriterion(id) {
+    state.criteria = state.criteria.filter(function(c) { return c.id !== id; });
+    for (var choiceId in state.scores) {
+      if (Object.prototype.hasOwnProperty.call(state.scores, choiceId)) {
+        delete state.scores[choiceId][id];
+      }
+    }
+    render();
+  }
+
+  function setScore(choiceId, criterionId, score) {
+    if (!state.scores[choiceId]) state.scores[choiceId] = {};
+    state.scores[choiceId][criterionId] = score;
+    renderStep3();
+    saveState(state);
+  }
+
+  function renderStep1() {
+    var list = document.getElementById('choice-list');
+    var counter = document.getElementById('choice-counter');
+    var btn = document.getElementById('to-step2-btn');
+    counter.textContent = state.choices.length + '件 / 最大5件';
+    var html = '';
+    for (var i = 0; i < state.choices.length; i++) {
+      var c = state.choices[i];
+      html += '<li><span class="item-name">' + escapeHtml(c.name) + '</span>' +
+        '<button class="btn btn-sm btn-danger" type="button" onclick="removeChoice(\'' + c.id + '\')" aria-label="' + escapeHtml(c.name) + ' を削除">削除</button></li>';
+    }
+    if (state.choices.length === 0) {
+      html = '<li style="justify-content:center;color:var(--text2);font-size:.9rem">まだ選択肢がありません</li>';
+    }
+    list.innerHTML = html;
+    btn.disabled = state.choices.length < 2;
+  }
+
+  function renderStep2() {
+    var list = document.getElementById('criterion-list');
+    var counter = document.getElementById('criterion-counter');
+    var btn = document.getElementById('to-step3-btn');
+    counter.textContent = state.criteria.length + '件 / 最大5件';
+    var html = '';
+    for (var i = 0; i < state.criteria.length; i++) {
+      var c = state.criteria[i];
+      html += '<li><span class="item-name">' + escapeHtml(c.name) + '</span>' +
+        '<span class="weight-tag">重要度 ' + c.weight + '</span>' +
+        '<button class="btn btn-sm btn-danger" type="button" onclick="removeCriterion(\'' + c.id + '\')" aria-label="' + escapeHtml(c.name) + ' を削除">削除</button></li>';
+    }
+    if (state.criteria.length === 0) {
+      html = '<li style="justify-content:center;color:var(--text2);font-size:.9rem">まだ基準がありません</li>';
+    }
+    list.innerHTML = html;
+    btn.disabled = state.criteria.length < 1 || state.choices.length < 2;
+    selectWeight(selectedWeight);
+  }
+
+  function renderStep3() {
+    var container = document.getElementById('score-matrix');
+    if (!container) return;
+    if (state.choices.length < 2 || state.criteria.length < 1) {
+      container.innerHTML = '<p style="text-align:center;color:var(--text2);padding:20px">選択肢と基準を先に設定してください。</p>';
+      return;
+    }
+    var html = '';
+    for (var i = 0; i < state.choices.length; i++) {
+      var choice = state.choices[i];
+      html += '<div class="choice-card"><div class="choice-name">' + escapeHtml(choice.name) + '</div>';
+      for (var j = 0; j < state.criteria.length; j++) {
+        var crit = state.criteria[j];
+        var currentScore = (state.scores[choice.id] && state.scores[choice.id][crit.id]) ? state.scores[choice.id][crit.id] : 3;
+        html += '<div class="criterion-row">';
+        html += '<span class="criterion-name">' + escapeHtml(crit.name) + '</span>';
+        html += '<span class="weight-tag">重要度 ' + crit.weight + '</span>';
+        html += '<div class="score-buttons" role="group" aria-label="' + escapeHtml(choice.name) + ' の ' + escapeHtml(crit.name) + ' の満足度">';
+        for (var s = 1; s <= 5; s++) {
+          var isSel = currentScore === s;
+          html += '<button class="score-btn' + (isSel ? ' selected' : '') + '" type="button" aria-pressed="' + (isSel ? 'true' : 'false') + '" aria-label="スコア ' + s + '" onclick="setScore(\'' + choice.id + '\',\'' + crit.id + '\',' + s + ')">' + s + '</button>';
+        }
+        html += '</div></div>';
+      }
+      html += '</div>';
+    }
+    container.innerHTML = html;
+  }
+
+  function calculateResults() {
+    var results = [];
+    for (var i = 0; i < state.choices.length; i++) {
+      var choice = state.choices[i];
+      var total = 0;
+      var maxPossible = 0;
+      for (var j = 0; j < state.criteria.length; j++) {
+        var crit = state.criteria[j];
+        var score = (state.scores[choice.id] && state.scores[choice.id][crit.id]) ? state.scores[choice.id][crit.id] : 3;
+        total += crit.weight * score;
+        maxPossible += crit.weight * 5;
+      }
+      results.push({
+        id: choice.id,
+        name: choice.name,
+        total: total,
+        max: maxPossible,
+        pct: maxPossible > 0 ? Math.round((total / maxPossible) * 100) : 0
+      });
+    }
+    results.sort(function(a, b) { return b.total - a.total; });
+    var tie = false;
+    var tieChoices = [];
+    if (results.length >= 2) {
+      var topScore = results[0].total;
+      for (var k = 0; k < results.length; k++) {
+        if (results[k].total === topScore) {
+          tieChoices.push(results[k].name);
+        }
+      }
+      tie = tieChoices.length > 1;
+    }
+    return { ranked: results, tie: tie, tieChoices: tieChoices };
+  }
+
+  function renderResult() {
+    var container = document.getElementById('result-content');
+    if (!container) return;
+    if (state.choices.length < 2 || state.criteria.length < 1) {
+      container.innerHTML = '<div class="card"><p style="text-align:center;color:var(--text2)">結果を表示するには選択肢（2件以上）と基準（1件以上）が必要です。</p></div>';
+      return;
+    }
+    var results = calculateResults();
+    var ranked = results.ranked;
+    var winner = ranked[0];
+    var html = '';
+    html += '<div class="result-header"><div class="big-label">🏆 決断結果</div>';
+    if (state.confirmed) {
+      html += '<div class="sub-label"><span class="confirmed-badge">✓ この決断で確定済み</span></div>';
+    } else {
+      html += '<div class="sub-label">迷いを断ち切る最終結果です</div>';
+    }
+    html += '</div>';
+    if (results.tie) {
+      html += '<div class="tie-warning"><strong>⚡ 同点決勝（1位タイ）</strong>';
+      html += results.tieChoices.map(function(n) { return escapeHtml(n); }).join(' と ');
+      html += ' が同点1位です。ステップ3に戻って再評価することをおすすめします。</div>';
+    }
+    html += '<div class="winner-card"><div class="winner-title">第1位</div>';
+    html += '<div class="winner-name">' + escapeHtml(winner.name) + '</div>';
+    html += '<div class="winner-score">合計 ' + winner.total + '点</div></div>';
+    html += '<div class="ranking-list">';
+    for (var i = 0; i < ranked.length; i++) {
+      var r = ranked[i];
+      var rankClass = i === 0 ? 'rank-1' : '';
+      html += '<div class="rank-item ' + rankClass + '">';
+      html += '<div class="rank-header"><span class="rank-badge">' + (i + 1) + '</span>';
+      html += '<span class="rank-name">' + escapeHtml(r.name) + '</span>';
+      html += '<span class="rank-score">' + r.total + '点</span></div>';
+      html += '<div class="rank-bar"><div class="rank-bar-fill" style="width:' + r.pct + '%"></div></div>';
+      html += '<div style="font-size:.75rem;color:var(--text2)">満点 ' + r.max + '点の ' + r.pct + '%</div>';
+      html += '</div>';
+    }
+    html += '</div>';
+    html += '<div class="result-actions">';
+    html += '<button class="btn btn-primary" type="button" onclick="copyResultText()">📋 結果をコピー</button>';
+    if (!state.confirmed) {
+      html += '<button class="btn btn-success" type="button" onclick="confirmDecision()">✓ この決断で確定する</button>';
+    }
+    if (results.tie) {
+      html += '<button class="btn" type="button" onclick="goTo(\'step3\')">ステップ3に戻って再評価</button>';
+    }
+    html += '<button class="btn" type="button" onclick="goTo(\'step3\')">スコアを見直す</button>';
+    html += '<button class="btn btn-danger" type="button" onclick="resetAll()">最初からやり直す</button>';
+    html += '</div>';
+    container.innerHTML = html;
+  }
+
+  function confirmDecision() {
+    state.confirmed = true;
+    render();
+  }
+
+  function buildResultText() {
+    var results = calculateResults();
+    var ranked = results.ranked;
+    var lines = [];
+    lines.push('【決断結果】迷いを3ステップで断ち切る選択肢スコア表');
+    lines.push('生成日: 2026-08-22');
+    lines.push('');
+    for (var i = 0; i < ranked.length; i++) {
+      lines.push((i + 1) + '位: ' + ranked[i].name + '（合計 ' + ranked[i].total + '点）');
+    }
+    lines.push('');
+    if (results.tie) {
+      lines.push('※同点決勝: ' + results.tieChoices.join(' と ') + ' が同点1位です（再評価推奨）');
+      lines.push('');
+    }
+    lines.push('■ 評価基準:');
+    for (var j = 0; j < state.criteria.length; j++) {
+      var c = state.criteria[j];
+      lines.push('・' + c.name + '（重要度 ' + c.weight + '）');
+    }
+    lines.push('');
+    lines.push('■ 選択肢ごとの内訳:');
+    for (var k = 0; k < ranked.length; k++) {
+      var r = ranked[k];
+      var detail = [];
+      for (var m = 0; m < state.criteria.length; m++) {
+        var crit = state.criteria[m];
+        var sc = (state.scores[r.id] && state.scores[r.id][crit.id]) ? state.scores[r.id][crit.id] : 3;
+        detail.push(crit.name + '=' + sc);
+      }
+      lines.push(r.name + ': ' + detail.join(', ') + ' → 合計 ' + r.total + '点');
+    }
+    if (state.confirmed) {
+      lines.push('');
+      lines.push('✅ この決断で確定しました');
+    }
+    return lines.join('\n');
+  }
+
+  function copyResultText() {
+    var text = buildResultText();
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function() {
+          showCopySuccess();
+        }).catch(function() {
+          fallbackCopy(text);
+        });
+      } else {
+        fallbackCopy(text);
+      }
+    } catch (e) {
+      fallbackCopy(text);
+    }
+  }
+
+  function fallbackCopy(text) {
+    try {
+      var textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.setAttribute('readonly', '');
+      textarea.style.position = 'fixed';
+      textarea.style.left = '-9999px';
+      document.body.appendChild(textarea);
+      textarea.select();
+      var ok = document.execCommand('copy');
+      document.body.removeChild(textarea);
+      if (ok) showCopySuccess();
+      else showError('コピーに失敗しました。手動でコピーしてください。');
+    } catch (e) {
+      showError('コピーに失敗しました。手動でコピーしてください。');
+    }
+  }
+
+  function showCopySuccess() {
+    var container = document.getElementById('result-content');
+    var existing = container.querySelector('.copy-success');
+    if (existing) existing.remove();
+    var div = document.createElement('div');
+    div.className = 'copy-success';
+    div.style.cssText = 'text-align:center;margin-top:12px;font-weight:600;color:var(--success);';
+    div.textContent = '✅ 結果をコピーしました';
+    container.appendChild(div);
+    setTimeout(function() {
+      var el = container.querySelector('.copy-success');
+      if (el) el.remove();
+    }, 2500);
+  }
+
+  function resetAll() {
+    if (!confirm('本当にすべてリセットしますか？')) return;
+    state = getDefaultState();
+    selectedWeight = 3;
+    render();
+  }
+
+  function loadSample() {
+    if (state.choices.length > 0 || state.criteria.length > 0) {
+      if (!confirm('現在の入力内容をサンプルで置き換えます。よろしいですか？')) return;
+    }
+    state = getDefaultState();
+    selectedWeight = 3;
+    var c1 = generateId(state);
+    var c2 = generateId(state);
+    var c3 = generateId(state);
+    state.choices = [
+      { id: c1, name: 'A案' },
+      { id: c2, name: 'B案' },
+      { id: c3, name: 'C案' }
+    ];
+    var k1 = generateId(state);
+    var k2 = generateId(state);
+    var k3 = generateId(state);
+    state.criteria = [
+      { id: k1, name: '価格', weight: 5 },
+      { id: k2, name: '手軽さ', weight: 3 },
+      { id: k3, name: '満足度', weight: 4 }
+    ];
+    state.scores = {};
+    state.scores[c1] = { k1: 4, k2: 5, k3: 3 };
+    state.scores[c2] = { k1: 3, k2: 4, k3: 5 };
+    state.scores[c3] = { k1: 5, k2: 2, k3: 4 };
+    state.view = 'step1';
+    state.confirmed = false;
+    render();
+  }
+
+  function bindEvents() {
+    document.getElementById('add-choice-btn').addEventListener('click', addChoice);
+    document.getElementById('choice-input').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') { e.preventDefault(); addChoice(); }
+    });
+    document.getElementById('add-criterion-btn').addEventListener('click', addCriterion);
+    document.getElementById('criterion-input').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') { e.preventDefault(); addCriterion(); }
+    });
+    document.getElementById('to-step2-btn').addEventListener('click', function() { goTo('step2'); });
+    document.getElementById('back-to-step1-btn').addEventListener('click', function() { goTo('step1'); });
+    document.getElementById('to-step3-btn').addEventListener('click', function() { goTo('step3'); });
+    document.getElementById('back-to-step2-btn').addEventListener('click', function() { goTo('step2'); });
+    document.getElementById('decide-btn').addEventListener('click', function() {
+      state.view = 'result';
+      state.confirmed = false;
+      render();
+    });
+    document.getElementById('sample-btn').addEventListener('click', loadSample);
+
+    var weightBtns = document.querySelectorAll('#weight-selector .score-btn');
+    for (var i = 0; i < weightBtns.length; i++) {
+      (function(btn) {
+        btn.addEventListener('click', function() {
+          selectWeight(parseInt(btn.getAttribute('data-weight'), 10));
+        });
+      })(weightBtns[i]);
+    }
+  }
+
+  window.removeChoice = removeChoice;
+  window.removeCriterion = removeCriterion;
+  window.setScore = setScore;
+  window.goTo = goTo;
+  window.copyResultText = copyResultText;
+  window.confirmDecision = confirmDecision;
+  window.resetAll = resetAll;
+
+  try {
+    bindEvents();
+    render();
+  } catch (e) {
+    showError('初期化中にエラーが発生しました: ' + e.message);
+  }
+})();
+</script>
+</body>
+</html>

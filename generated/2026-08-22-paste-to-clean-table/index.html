@@ -1,0 +1,697 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>貼り付けた文章を整列する美表組み変換ツール</title>
+<style>
+:root {
+  --bg: #ffffff;
+  --text: #1a1a2e;
+  --card-bg: #f7f7fb;
+  --border: #d0d0dc;
+  --accent: #4a6cf7;
+  --accent-hover: #3a56d4;
+  --accent-text: #ffffff;
+  --header-bg: #e8ecf9;
+  --row-even: #fafafe;
+  --row-hover: #eef1ff;
+  --muted: #6b6b80;
+  --focus-ring: 3px solid #4a6cf7;
+  --shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #12121a;
+    --text: #e6e6f0;
+    --card-bg: #1e1e2a;
+    --border: #3a3a4c;
+    --accent: #5c7cfa;
+    --accent-hover: #6e8aff;
+    --accent-text: #ffffff;
+    --header-bg: #2a2d42;
+    --row-even: #1a1a24;
+    --row-hover: #252538;
+    --muted: #a0a0b8;
+    --shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  padding: 16px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: background 0.3s, color 0.3s;
+}
+@media (prefers-reduced-motion: reduce) {
+  body { transition: none; }
+}
+main {
+  max-width: 960px;
+  width: 100%;
+}
+header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+header h1 {
+  font-size: clamp(1.5rem, 4vw, 2.2rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 4px;
+}
+header p {
+  color: var(--muted);
+  font-size: 1rem;
+}
+section {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow);
+}
+h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+textarea {
+  width: 100%;
+  min-height: 160px;
+  resize: vertical;
+  padding: 12px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  outline: none;
+  transition: border 0.2s;
+}
+textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(74,108,247,0.15);
+}
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-start;
+}
+.control-group {
+  flex: 1;
+  min-width: 160px;
+}
+.control-group label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--muted);
+}
+.radio-row, .check-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: center;
+}
+.radio-row label, .check-row label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 400;
+  font-size: 0.9rem;
+  color: var(--text);
+  cursor: pointer;
+  margin: 0;
+}
+input[type="radio"], input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+input[type="number"] {
+  width: 100%;
+  max-width: 100px;
+  padding: 8px 10px;
+  font-size: 0.9rem;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  outline: none;
+}
+input[type="number"]:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(74,108,247,0.15);
+}
+.table-container {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  min-width: 100%;
+}
+th, td {
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+th {
+  background: var(--header-bg);
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+}
+tbody tr:nth-child(even) {
+  background: var(--row-even);
+}
+tbody tr:hover {
+  background: var(--row-hover);
+}
+.action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+button {
+  padding: 10px 18px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  background: var(--accent);
+  color: var(--accent-text);
+  transition: background 0.2s, transform 0.1s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+button:hover {
+  background: var(--accent-hover);
+}
+button:active {
+  transform: scale(0.97);
+}
+button:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+button.secondary {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+button.secondary:hover {
+  background: var(--row-hover);
+}
+button.copy-btn {
+  background: #3a9d5e;
+}
+button.copy-btn:hover {
+  background: #2d7a49;
+}
+button.download-btn {
+  background: var(--accent);
+}
+button.download-btn:hover {
+  background: var(--accent-hover);
+}
+footer {
+  text-align: center;
+  margin-top: 16px;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+@media (max-width: 600px) {
+  body { padding: 10px; }
+  section { padding: 12px; }
+  .controls { flex-direction: column; }
+  .control-group { min-width: auto; }
+  button { padding: 8px 14px; font-size: 0.85rem; }
+}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>貼り付けた文章を整列する美表組み変換ツール</h1>
+    <p>乱雑な区切り文字を一発で整列表に</p>
+  </header>
+
+  <section aria-labelledby="input-heading">
+    <h2 id="input-heading">📋 文章を貼り付け</h2>
+    <textarea id="input-text" placeholder="ここに文章を貼り付けてください。例:&#10;名前, 年齢, 都市&#10;田中, 28, 東京&#10;佐藤, 35, 大阪"></textarea>
+  </section>
+
+  <section aria-labelledby="settings-heading">
+    <h2 id="settings-heading">⚙️ 区切り文字とヘッダー設定</h2>
+    <div class="controls">
+      <div class="control-group">
+        <label>区切り文字</label>
+        <div class="radio-row" role="group" aria-label="区切り文字の選択">
+          <label><input type="radio" name="delimiter" value="auto" checked> 自動判定</label>
+          <label><input type="radio" name="delimiter" value="tab"> タブ</label>
+          <label><input type="radio" name="delimiter" value="comma"> カンマ</label>
+          <label><input type="radio" name="delimiter" value="space"> スペース</label>
+          <label><input type="radio" name="delimiter" value="newline"> 改行</label>
+        </div>
+      </div>
+      <div class="control-group">
+        <label>ヘッダー行</label>
+        <div class="check-row">
+          <label><input type="checkbox" id="has-header" checked> 最初の行を見出しにする</label>
+        </div>
+      </div>
+      <div class="control-group">
+        <label for="column-count">列数</label>
+        <input type="number" id="column-count" min="1" max="50" value="3">
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="preview-heading">
+    <h2 id="preview-heading">👀 プレビュー</h2>
+    <div class="table-container">
+      <table id="preview-table" aria-label="整形された表"></table>
+    </div>
+  </section>
+
+  <section aria-labelledby="output-heading">
+    <h2 id="output-heading">📤 コピー / ダウンロード</h2>
+    <div class="action-buttons">
+      <button class="copy-btn" data-format="tsv" aria-label="TSVとしてコピー">TSVコピー</button>
+      <button class="copy-btn" data-format="csv" aria-label="CSVとしてコピー">CSVコピー</button>
+      <button class="copy-btn" data-format="markdown" aria-label="Markdown表としてコピー">Markdownコピー</button>
+      <button class="download-btn" data-format="tsv" aria-label="TSVとしてダウンロード">TSV DL</button>
+      <button class="download-btn" data-format="csv" aria-label="CSVとしてダウンロード">CSV DL</button>
+      <button class="download-btn" data-format="markdown" aria-label="Markdown表としてダウンロード">Markdown DL</button>
+    </div>
+  </section>
+
+  <footer>
+    <p>生成日: 2026-08-22 お題の出所: ユーザー投稿</p>
+  </footer>
+</main>
+
+<script>
+(function() {
+  "use strict";
+
+  try {
+    // 要素参照
+    const inputText = document.getElementById('input-text');
+    const radDelimiter = document.querySelectorAll('input[name="delimiter"]');
+    const hasHeaderCheck = document.getElementById('has-header');
+    const columnCountInput = document.getElementById('column-count');
+    const previewTable = document.getElementById('preview-table');
+    const copyButtons = document.querySelectorAll('.copy-btn');
+    const downloadButtons = document.querySelectorAll('.download-btn');
+
+    // デフォルト状態
+    const STORAGE_KEY = 'paste-to-clean-table-state';
+    let currentRows = []; // 二次元配列
+    let currentDelimiterValue = 'auto';
+    let currentHasHeader = true;
+    let currentColumnCount = 3;
+
+    // localStorageから復元
+    function loadState() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const state = JSON.parse(saved);
+          if (state.input !== undefined) inputText.value = state.input;
+          if (state.delimiter !== undefined) currentDelimiterValue = state.delimiter;
+          if (state.hasHeader !== undefined) currentHasHeader = state.hasHeader;
+          if (state.columnCount !== undefined) currentColumnCount = state.columnCount;
+          // UIに反映
+          radDelimiter.forEach(radio => {
+            if (radio.value === currentDelimiterValue) radio.checked = true;
+          });
+          hasHeaderCheck.checked = currentHasHeader;
+          columnCountInput.value = currentColumnCount;
+        }
+      } catch (e) {
+        // 復元失敗時はデフォルトのまま
+      }
+    }
+
+    function saveState() {
+      try {
+        const state = {
+          input: inputText.value,
+          delimiter: currentDelimiterValue,
+          hasHeader: currentHasHeader,
+          columnCount: currentColumnCount
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (e) {
+        // 保存失敗は無視
+      }
+    }
+
+    // 行取得（空行を除く）
+    function getLines(text) {
+      return text.split(/\r?\n/).filter(line => line.trim().length > 0);
+    }
+
+    // 区切り文字で分割
+    function splitLine(line, delimiter) {
+      if (delimiter === 'newline') {
+        return [line];
+      }
+      let regex;
+      switch (delimiter) {
+        case 'tab': regex = /\t+/; break;
+        case 'comma': regex = /,+/; break;
+        case 'space': regex = / +/; break;
+        default: regex = /\s+/; break;
+      }
+      return line.split(regex).filter(s => s.length > 0);
+    }
+
+    // 区切り文字の自動判定
+    function detectDelimiter(lines) {
+      const candidates = ['tab', 'comma', 'space', 'newline'];
+      const priority = { 'tab': 0, 'comma': 1, 'space': 2, 'newline': 3 };
+      let bestDelimiter = 'tab';
+      let bestScore = -1;
+
+      for (const d of candidates) {
+        const counts = {};
+        lines.forEach(line => {
+          const parts = splitLine(line, d);
+          const n = parts.length;
+          counts[n] = (counts[n] || 0) + 1;
+        });
+        let maxCount = 0;
+        let maxN = 1;
+        for (const n in counts) {
+          if (counts[n] > maxCount) {
+            maxCount = counts[n];
+            maxN = parseInt(n, 10);
+          }
+        }
+        // スコアは出現回数。1列は有用性が低いので0.5倍
+        let score = maxCount;
+        if (maxN === 1) score = maxCount * 0.5;
+        if (score > bestScore || (score === bestScore && priority[d] < priority[bestDelimiter])) {
+          bestScore = score;
+          bestDelimiter = d;
+        }
+      }
+      return bestDelimiter;
+    }
+
+    // 列数調整
+    function adjustColumns(lines, delimiter, columnCount) {
+      return lines.map(line => {
+        const parts = splitLine(line, delimiter);
+        if (parts.length === columnCount) {
+          return parts;
+        } else if (parts.length < columnCount) {
+          while (parts.length < columnCount) {
+            parts.push('');
+          }
+          return parts;
+        } else {
+          // 超過分を最後の列に結合
+          const first = parts.slice(0, columnCount - 1);
+          const last = parts.slice(columnCount - 1).join(' ');
+          return first.concat([last]);
+        }
+      });
+    }
+
+    // テーブルプレビュー描画
+    function renderPreview(rows, hasHeader) {
+      previewTable.innerHTML = '';
+      if (rows.length === 0) return;
+
+      const thead = document.createElement('thead');
+      const tbody = document.createElement('tbody');
+
+      if (hasHeader && rows.length > 0) {
+        const trHead = document.createElement('tr');
+        rows[0].forEach(cell => {
+          const th = document.createElement('th');
+          th.textContent = cell;
+          th.scope = 'col';
+          trHead.appendChild(th);
+        });
+        thead.appendChild(trHead);
+
+        rows.slice(1).forEach(row => {
+          const tr = document.createElement('tr');
+          row.forEach(cell => {
+            const td = document.createElement('td');
+            td.textContent = cell;
+            tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        });
+      } else {
+        rows.forEach(row => {
+          const tr = document.createElement('tr');
+          row.forEach(cell => {
+            const td = document.createElement('td');
+            td.textContent = cell;
+            tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        });
+      }
+
+      previewTable.appendChild(thead);
+      previewTable.appendChild(tbody);
+    }
+
+    // メイン処理
+    function processText() {
+      const text = inputText.value;
+      const lines = getLines(text);
+      if (lines.length === 0) {
+        currentRows = [];
+        renderPreview([], false);
+        return;
+      }
+
+      // 区切り文字を決定
+      let effectiveDelimiter = currentDelimiterValue;
+      if (effectiveDelimiter === 'auto') {
+        effectiveDelimiter = detectDelimiter(lines);
+      }
+
+      // 列数を取得
+      let columnCount = parseInt(columnCountInput.value, 10);
+      if (isNaN(columnCount) || columnCount < 1) columnCount = 1;
+      if (columnCount > 50) columnCount = 50;
+
+      // 列数を自動で設定する場合（auto かつ 列数が変更されていない場合）
+      // ここでは簡易的に、autoの場合のみ自動で列数を決定
+      if (currentDelimiterValue === 'auto') {
+        // 自動判定で最も多かった列数を計算
+        const parts = lines.map(line => splitLine(line, effectiveDelimiter));
+        const countMap = {};
+        parts.forEach(p => { countMap[p.length] = (countMap[p.length] || 0) + 1; });
+        let maxCount = 0;
+        let autoCols = 1;
+        for (const n in countMap) {
+          if (countMap[n] > maxCount) {
+            maxCount = countMap[n];
+            autoCols = parseInt(n, 10);
+          }
+        }
+        columnCount = autoCols;
+        // 入力欄を更新
+        columnCountInput.value = columnCount;
+      }
+
+      currentColumnCount = columnCount;
+
+      // 行を分割し、列数を調整
+      const rows = adjustColumns(lines, effectiveDelimiter, columnCount);
+      currentRows = rows;
+
+      renderPreview(rows, currentHasHeader);
+    }
+
+    // 出力テキスト生成
+    function generateOutput(format) {
+      const rows = currentRows;
+      if (rows.length === 0) return '';
+
+      if (format === 'tsv') {
+        return rows.map(row => row.join('\t')).join('\n');
+      }
+
+      if (format === 'csv') {
+        return rows.map(row => row.map(csvEscape).join(',')).join('\n');
+      }
+
+      if (format === 'markdown') {
+        return toMarkdown(rows, currentHasHeader);
+      }
+
+      return '';
+    }
+
+    function csvEscape(value) {
+      if (typeof value !== 'string') value = String(value);
+      if (value.includes(',') || value.includes('"') || value.includes('\n') || value.includes('\r')) {
+        return '"' + value.replace(/"/g, '""') + '"';
+      }
+      return value;
+    }
+
+    function markdownEscape(value) {
+      return value.replace(/\|/g, '\\|').replace(/\n/g, '<br>').replace(/\r/g, '');
+    }
+
+    function toMarkdown(rows, hasHeader) {
+      if (rows.length === 0) return '';
+      const cols = rows[0].length;
+      const escape = markdownEscape;
+      const lines = [];
+
+      if (hasHeader) {
+        const header = rows[0];
+        const separator = Array(cols).fill('---');
+        lines.push('| ' + header.map(escape).join(' | ') + ' |');
+        lines.push('| ' + separator.join(' | ') + ' |');
+        rows.slice(1).forEach(row => {
+          lines.push('| ' + row.map(escape).join(' | ') + ' |');
+        });
+      } else {
+        rows.forEach(row => {
+          lines.push('| ' + row.map(escape).join(' | ') + ' |');
+        });
+      }
+      return lines.join('\n');
+    }
+
+    // コピー
+    async function copyText(text) {
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(text);
+        } else {
+          // フォールバック
+          const textarea = document.createElement('textarea');
+          textarea.value = text;
+          textarea.style.position = 'fixed';
+          textarea.style.opacity = '0';
+          document.body.appendChild(textarea);
+          textarea.select();
+          document.execCommand('copy');
+          document.body.removeChild(textarea);
+        }
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    // ダウンロード
+    function downloadText(text, filename) {
+      try {
+        const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      } catch (e) {
+        // ダウンロード失敗時はコンソールに表示するが、エラーは無視
+      }
+    }
+
+    // イベントリスナー
+    inputText.addEventListener('input', function() {
+      processText();
+      saveState();
+    });
+
+    radDelimiter.forEach(radio => {
+      radio.addEventListener('change', function() {
+        currentDelimiterValue = this.value;
+        processText();
+        saveState();
+      });
+    });
+
+    hasHeaderCheck.addEventListener('change', function() {
+      currentHasHeader = this.checked;
+      renderPreview(currentRows, currentHasHeader);
+      saveState();
+    });
+
+    columnCountInput.addEventListener('input', function() {
+      processText();
+      saveState();
+    });
+
+    copyButtons.forEach(btn => {
+      btn.addEventListener('click', async function() {
+        const format = this.dataset.format;
+        const text = generateOutput(format);
+        if (text) {
+          const success = await copyText(text);
+          if (success) {
+            const original = this.textContent;
+            this.textContent = 'コピーしました!';
+            setTimeout(() => { this.textContent = original; }, 1500);
+          }
+        }
+      });
+    });
+
+    downloadButtons.forEach(btn => {
+      btn.addEventListener('click', function() {
+        const format = this.dataset.format;
+        const text = generateOutput(format);
+        if (text) {
+          const ext = format === 'markdown' ? 'md' : format;
+          downloadText(text, 'table.' + ext);
+        }
+      });
+    });
+
+    // 初期化
+    loadState();
+    processText();
+    saveState();
+
+  } catch (error) {
+    // 全体のエラーハンドリング
+    console.error('アプリケーションエラー:', error);
+    // エラー時でも何か表示する
+    document.body.innerHTML = '<h1>エラーが発生しました</h1><p>ページをリロードしてください。</p>';
+  }
+})();
+</script>
+</body>
+</html>

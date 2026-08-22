@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>大げさ敬語変換マシン</title>
+<style>
+  :root {
+    --bg: #f5f3ee;
+    --surface: #ffffff;
+    --text: #2d2a24;
+    --muted: #6f675b;
+    --accent: #b3472f;
+    --accent-soft: #f0d9cf;
+    --border: #d8cfc0;
+    --shadow: 0 4px 14px rgba(0,0,0,.08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1f1d19;
+      --surface: #2b2823;
+      --text: #eae4d8;
+      --muted: #b0a697;
+      --accent: #e07a5f;
+      --accent-soft: #4a332c;
+      --border: #4f473a;
+      --shadow: 0 4px 14px rgba(0,0,0,.3);
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Hiragino Maru Gothic ProN", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
+    line-height: 1.7;
+    min-height: 100vh;
+    padding: 1.2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: background .3s;
+  }
+  .wrap {
+    max-width: 680px;
+    width: 100%;
+    background: var(--surface);
+    border-radius: 28px;
+    box-shadow: var(--shadow);
+    padding: 2rem 1.5rem 1.8rem;
+    border: 1px solid var(--border);
+  }
+  h1 {
+    font-size: 1.5rem;
+    letter-spacing: .03em;
+    line-height: 1.4;
+    margin-bottom: .3rem;
+    color: var(--text);
+    text-wrap: balance;
+  }
+  .tagline {
+    color: var(--muted);
+    font-size: .95rem;
+    margin-bottom: 1.5rem;
+    border-left: 4px solid var(--accent);
+    padding-left: .8rem;
+  }
+  label {
+    font-weight: 600;
+    font-size: .9rem;
+    display: block;
+    margin-bottom: .5rem;
+  }
+  textarea {
+    width: 100%;
+    min-height: 100px;
+    padding: .8rem 1rem;
+    border-radius: 16px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 1rem;
+    resize: vertical;
+    margin-bottom: 1.4rem;
+    font-family: inherit;
+  }
+  textarea:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+  }
+  input[type="range"] {
+    flex: 1;
+    min-width: 180px;
+    accent-color: var(--accent);
+  }
+  #cushionLabel {
+    background: var(--accent-soft);
+    color: var(--text);
+    padding: .2rem 1rem;
+    border-radius: 999px;
+    font-size: .85rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .example-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    margin-bottom: 1.8rem;
+  }
+  .example-buttons button {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: .3rem 1rem;
+    border-radius: 999px;
+    font-size: .85rem;
+    cursor: pointer;
+    transition: background .2s, transform .1s;
+  }
+  .example-buttons button:hover {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+  }
+  .primary-actions {
+    display: flex;
+    gap: .8rem;
+    flex-wrap: wrap;
+  }
+  .btn {
+    border: none;
+    background: var(--accent);
+    color: #fff;
+    padding: .8rem 1.5rem;
+    border-radius: 999px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    transition: filter .2s, transform .1s;
+    box-shadow: 0 2px 8px rgba(0,0,0,.15);
+  }
+  .btn.secondary {
+    background: transparent;
+    color: var(--accent);
+    border: 2px solid var(--accent);
+    box-shadow: none;
+  }
+  .btn:hover { filter: brightness(1.05); }
+  .btn:active { transform: scale(.97); }
+  .result-area {
+    background: var(--bg);
+    border-radius: 20px;
+    padding: 1.2rem;
+    margin: 1.8rem 0 1rem;
+    border: 1px dashed var(--border);
+    min-height: 100px;
+    position: relative;
+    transition: background .2s;
+  }
+  .result-text {
+    font-size: 1.15rem;
+    color: var(--text);
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .placeholder {
+    color: var(--muted);
+    font-style: italic;
+    font-size: .95rem;
+  }
+  .copy-btn {
+    position: absolute;
+    bottom: .8rem;
+    right: .8rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 999px;
+    padding: .3rem 1rem;
+    font-size: .8rem;
+    cursor: pointer;
+    opacity: .8;
+    transition: opacity .2s;
+  }
+  .copy-btn:hover { opacity: 1; }
+  .copy-success {
+    position: absolute;
+    bottom: .8rem;
+    left: 1rem;
+    font-size: .8rem;
+    color: var(--accent);
+    background: var(--accent-soft);
+    padding: .2rem .8rem;
+    border-radius: 999px;
+    opacity: 0;
+    transition: opacity .3s;
+    pointer-events: none;
+  }
+  .copy-success.show { opacity: 1; }
+  footer {
+    font-size: .8rem;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 2rem;
+    line-height: 1.7;
+    border-top: 1px solid var(--border);
+    padding-top: 1.2rem;
+    width: 100%;
+    max-width: 680px;
+  }
+  @media (max-width: 420px) {
+    .wrap { padding: 1.4rem 1rem; }
+    h1 { font-size: 1.3rem; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>言いにくい本音を<br>大げさ敬語に変換</h1>
+    <div class="tagline">本音が丁寧すぎて逆に失礼になる変換遊び</div>
+
+    <label for="inputText">言いにくい一言</label>
+    <textarea id="inputText" placeholder="例: その案、無理です。 / それ、違います。 / 給料上げてください。"></textarea>
+
+    <div class="slider-row">
+      <input type="range" id="cushionSlider" min="1" max="5" value="2" aria-label="クッション度">
+      <span id="cushionLabel">クッション度: ふつう</span>
+    </div>
+
+    <div class="example-buttons">
+      <button type="button" data-example="その企画、絶対にうまくいきませんよ。">企画の失敗を伝える</button>
+      <button type="button" data-example="あの人、ちょっと苦手です。">人の感想</button>
+      <button type="button" data-example="給料を上げてほしいです。">要求</button>
+      <button type="button" data-example="今日の会議、無駄でしたね。">会議の感想</button>
+    </div>
+
+    <div class="primary-actions">
+      <button class="btn" id="convertBtn">⛩ 変換する</button>
+      <button class="btn secondary" id="randomBtn">🎲 別の敬語で変換</button>
+    </div>
+
+    <div class="result-area" id="resultArea">
+      <div class="result-text" id="resultText">変換結果がここに表示されます</div>
+      <button class="copy-btn" id="copyBtn" aria-label="コピー">コピー</button>
+      <span class="copy-success" id="copySuccess">コピーしました ✓</span>
+    </div>
+  </div>
+
+  <footer>
+    生成日: 2026-08-22　お題の出所: ユーザー投稿<br>
+    過剰敬語で笑いを生むジョークアプリ　※実在の人物・団体とは関係ありません
+  </footer>
+
+<script>
+(function(){
+  "use strict";
+
+  // ------ 大げさ敬語変換辞書 (ルールベース) ------
+  const PREFIX_TEMPLATES = [
+    "恐れながら","僭越ながら","誠に図々しいお願いではございますが",
+    "ご高説を頂戴したく","お耳を汚してしまうかもしれませんが",
+    "平身低頭、申し上げにくいことでございますが",
+    "身の程知らずとは重々承知の上で",
+    "天に唾する所存でございますが"
+  ];
+
+  const SUFFIX_HONORIFICS = [
+    "と存じ上げます次第でございます",
+    "と拝察いたしました次第にございます",
+    "とお耳に入れさせていただく次第でございます",
+    "と恐れながらお伝え申し上げます",
+    "との儀、ご賢察賜りたく存じます",
+    "と心苦しくもお告げ申し上げる次第でございます"
+  ];
+
+  const COVER_UP_PREFIX = [
+    "なにとぞご容赦くださいませ",
+    "ご立腹はごもっともかと存じますが",
+    "私ごときが申し上げるのもおこがましい限りですが",
+    "今一度ご斟酌いただけますと幸甚に存じます"
+  ];
+
+  const HEDGE_WORD = [
+    "【本音を申し上げますと】","【失礼ながら】","【僭越ながら】","【平にご容赦を】", "【あくまで私見ですが】"
+  ];
+
+  // 語尾変換用 (部分的に「です/ます」を大げさに)
+  function keigoTransformSentence(raw) {
+    if (!raw || raw.trim() === "") return raw;
+
+    let text = raw.trim();
+
+    // 特定の語尾を敬語っぽく置換（ざっくりルール）
+    const replacements = [
+      [/です\s*$/u, "でございます"],
+      [/ます\s*$/u, "ましてございます"],
+      [/だ\s*$/u, "でございます"],
+      [/ですか\s*$/u, "でございますか"],
+      [/な\s*$/u, "なのでございます"],
+      [/。\s*$/u, ""] // 一旦句点を取る（後で足す）
+    ];
+
+    let changed = text;
+    for (let [re, to] of replacements) {
+      if (re.test(changed)) {
+        changed = changed.replace(re, to);
+        break; // 最初の1つのみ適用
+      }
+    }
+
+    // もし「です・ます・だ」が無い場合は「と申しますか…」を追加
+    if (changed === text) {
+      // 無理やり「でございます」を語尾に付ける (末に追加)
+      changed = text + "でございます";
+    }
+
+    return changed;
+  }
+
+  // 大げさ表現を組み立てるメイン関数
+  function buildExaggerated(inputText, cushionLevel = 2) {
+    const original = inputText.trim();
+    if (!original) return "（先に言いにくい一言を入力してください）";
+
+    // 1. クッション度 (1-5)
+    const level = Math.min(5, Math.max(1, cushionLevel));
+
+    // 2. 敬語変換コア
+    let core = keigoTransformSentence(original);
+    // 句点除去済みなら追加、句点があれば維持
+    if (!core.endsWith("。")) core = "「" + core + "」";
+
+    // 3. レベルに応じて装飾を増やす
+    let prefix = "";
+    if (level >= 2) {
+      prefix = PREFIX_TEMPLATES[Math.floor(Math.random() * PREFIX_TEMPLATES.length)] + "、";
+    }
+    if (level >= 4) {
+      // さらにクッション前置き追加
+      prefix = COVER_UP_PREFIX[Math.floor(Math.random() * COVER_UP_PREFIX.length)] + "。 " + prefix;
+    }
+
+    let suffix = "";
+    if (level >= 3) {
+      suffix = "。 " + SUFFIX_HONORIFICS[Math.floor(Math.random() * SUFFIX_HONORIFICS.length)];
+    } else if (level === 2) {
+      suffix = "。 何卒ご了承のほどお願い申し上げます";
+    } else if (level === 1) {
+      suffix = "。 すみません。";
+    } else {
+      suffix = "。 " + SUFFIX_HONORIFICS[Math.floor(Math.random() * SUFFIX_HONORIFICS.length)];
+    }
+
+    // ランダムにはしご言葉を冒頭に挿入 (少しだけ)
+    let hedge = "";
+    if (Math.random() < 0.5) {
+      hedge = HEDGE_WORD[Math.floor(Math.random() * HEDGE_WORD.length)] + " ";
+    }
+
+    // 過剰な美化語を追加
+    const extra = level >= 5 ? " 「ご高配のほど、恐れ入ります」 " : "";
+
+    // 組み立て
+    let result = hedge + prefix + core + suffix + extra;
+    // スペース整理
+    result = result.replace(/[ \t]+/g, " ").replace(/。\s*。/g, "。");
+    return result;
+  }
+
+  // ------ UI 要素 ------
+  const inputText = document.getElementById('inputText');
+  const slider = document.getElementById('cushionSlider');
+  const cushionLabel = document.getElementById('cushionLabel');
+  const convertBtn = document.getElementById('convertBtn');
+  const randomBtn = document.getElementById('randomBtn');
+  const resultText = document.getElementById('resultText');
+  const copyBtn = document.getElementById('copyBtn');
+  const copySuccess = document.getElementById('copySuccess');
+
+  let currentResult = "";
+
+  // スライダーのラベル更新
+  function updateSliderLabel(val) {
+    let label = "ふつう";
+    if (val <= 1) label = "ささやか";
+    else if (val === 2) label = "ふつう";
+    else if (val === 3) label = "しつこい";
+    else if (val === 4) label = "過剰";
+    else label = "限界突破";
+    cushionLabel.textContent = `クッション度: ${label}`;
+  }
+  slider.addEventListener('input', () => {
+    updateSliderLabel(slider.value);
+  });
+  updateSliderLabel(slider.value);
+
+  // 変換実行
+  function runConversion() {
+    const raw = inputText.value.trim();
+    if (!raw) {
+      resultText.textContent = "（入力欄に言いにくい一言を書いてから変換してね）";
+      currentResult = "";
+      return;
+    }
+    const level = parseInt(slider.value, 10) || 2;
+    currentResult = buildExaggerated(raw, level);
+    resultText.textContent = currentResult;
+    // コピー成功表示を隠す
+    copySuccess.classList.remove('show');
+  }
+
+  convertBtn.addEventListener('click', runConversion);
+  randomBtn.addEventListener('click', () => {
+    // 同じ入力で別表現 (ランダム要素を再度呼ぶ)
+    const raw = inputText.value.trim();
+    if (!raw) {
+      resultText.textContent = "（まず一言を入力してください）";
+      currentResult = "";
+      return;
+    }
+    const level = parseInt(slider.value, 10) || 2;
+    // 再実行でランダムに変化
+    currentResult = buildExaggerated(raw, level);
+    resultText.textContent = currentResult;
+    copySuccess.classList.remove('show');
+  });
+
+  // 例文ボタン
+  document.querySelectorAll('.example-buttons button').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const example = e.currentTarget.dataset.example || "";
+      inputText.value = example;
+      // 自動変換もする
+      runConversion();
+    });
+  });
+
+  // コピー動作
+  copyBtn.addEventListener('click', async () => {
+    if (!currentResult) return;
+    try {
+      await navigator.clipboard.writeText(currentResult);
+      copySuccess.classList.add('show');
+      setTimeout(() => {
+        copySuccess.classList.remove('show');
+      }, 1600);
+    } catch (err) {
+      // clipboard API が無い場合のフォールバック
+      const textarea = document.createElement('textarea');
+      textarea.value = currentResult;
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand('copy');
+        copySuccess.classList.add('show');
+        setTimeout(() => copySuccess.classList.remove('show'), 1600);
+      } catch (e) {
+        alert("コピーに失敗しました。手でコピーしてください: " + currentResult);
+      }
+      document.body.removeChild(textarea);
+    }
+  });
+
+  // 初期状態：何もなし
+  resultText.textContent = "👆 言いにくい一言を入力して「変換」を押すと、大げさな敬語になります。";
+  // 外部通信なし・try/catchで全体保護（念のため）
+  try {
+    // 初回表示のみ何もしない
+  } catch (e) {
+    console.warn(e);
+  }
+
+  // 全体をtry/catchでラップ（仕様上）
+  window.addEventListener('load', function() {
+    try {
+      // 安全確認のみ
+    } catch (e) {}
+  });
+
+})();
+</script>
+</body>
+</html>

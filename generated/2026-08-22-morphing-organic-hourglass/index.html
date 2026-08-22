@@ -1,0 +1,778 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>触れるたびにくねる有機砂時計シミュレーター</title>
+<style>
+  :root {
+    --bg: #f5f0e6;
+    --text: #2d2a24;
+    --subtext: #6b645b;
+    --accent: #c89040;
+    --button-bg: #3a332c;
+    --button-text: #f5f0e6;
+    --button-hover: #554a3e;
+    --footer-text: #8a8070;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12121a;
+      --text: #e8e2d5;
+      --subtext: #9a948a;
+      --accent: #d4a054;
+      --button-bg: #d4a054;
+      --button-text: #1a1a2e;
+      --button-hover: #e8b85a;
+      --footer-text: #6e6a60;
+    }
+  }
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.3s ease, color 0.3s ease;
+  }
+  body {
+    padding: 12px;
+  }
+  .app {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    max-width: 600px;
+    width: 100%;
+    min-height: 100vh;
+    gap: 10px;
+  }
+  header {
+    text-align: center;
+    margin-bottom: 2px;
+  }
+  h1 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+  .tagline {
+    font-size: 0.82rem;
+    color: var(--subtext);
+    margin-top: 4px;
+    font-weight: 400;
+  }
+  .canvas-wrapper {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    max-height: 58vh;
+  }
+  canvas {
+    display: block;
+    max-width: 100%;
+    max-height: 58vh;
+    border-radius: 16px;
+    touch-action: none;
+    cursor: crosshair;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+    transition: box-shadow 0.3s ease;
+  }
+  @media (prefers-color-scheme: dark) {
+    canvas {
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    }
+  }
+  .controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    margin-top: 2px;
+  }
+  button {
+    font-family: inherit;
+    font-size: 0.9rem;
+    padding: 10px 28px;
+    border: none;
+    border-radius: 24px;
+    background: var(--button-bg);
+    color: var(--button-text);
+    cursor: pointer;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    transition: background 0.2s ease, transform 0.15s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+  button:hover {
+    background: var(--button-hover);
+  }
+  button:active {
+    transform: scale(0.96);
+  }
+  button:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .hint {
+    font-size: 0.72rem;
+    color: var(--subtext);
+    text-align: center;
+    line-height: 1.5;
+  }
+  footer {
+    text-align: center;
+    font-size: 0.65rem;
+    color: var(--footer-text);
+    padding: 6px 0 2px;
+    letter-spacing: 0.03em;
+  }
+  @media (max-width: 400px) {
+    h1 {
+      font-size: 1.15rem;
+    }
+    .tagline {
+      font-size: 0.72rem;
+    }
+    button {
+      padding: 8px 20px;
+      font-size: 0.8rem;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    canvas {
+      box-shadow: none;
+      transition: none;
+    }
+    button {
+      transition: none;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header>
+    <h1>触れるたびにくねる有機砂時計</h1>
+    <p class="tagline">つつくと砂の落ち方まで変わる、不思議なデジタル砂時計</p>
+  </header>
+  <div class="canvas-wrapper">
+    <canvas id="canvas" width="600" height="800" aria-label="有機砂時計シミュレーター"></canvas>
+  </div>
+  <div class="controls">
+    <button id="resetBtn" type="button">リセット</button>
+    <p class="hint">クリックやドラッグで砂時計が変形します。<br>砂が落ちきると自動で反転します。</p>
+  </div>
+  <footer>
+    <p>生成日: 2026-08-22 | お題の出所: ユーザー投稿</p>
+  </footer>
+</div>
+<script>
+(function() {
+  'use strict';
+
+  try {
+    // ============ 基本設定 ============
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const resetBtn = document.getElementById('resetBtn');
+
+    const CW = 600;
+    const CH = 800;
+    const CENTER_X = 300;
+    const TOP_Y = 96;
+    const BOTTOM_Y = 704;
+    const NECK_Y = 400;
+    const NUM_CTRL_POINTS = 26;
+    const NUM_PARTICLES = 340;
+    const STORAGE_KEY = 'morph-hourglass-shape-v1';
+    const MIN_RADIUS = 5;
+    const MAX_RADIUS = 210;
+
+    // テーマ検出
+    const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let isDark = darkQuery.matches;
+    let reducedMotion = reducedMotionQuery.matches;
+
+    let ctrlPoints = [];
+    let particles = [];
+    let isDragging = false;
+    let pointerX = CENTER_X;
+    let pointerY = NECK_Y;
+    let flipFlash = 0;
+    let frameCount = 0;
+    let lastTime = null;
+    let animId = null;
+    let shapeDirty = true;
+
+    // ============ 初期形状の計算 ============
+    function getDefaultRadius(y) {
+      const t = (y - TOP_Y) / (BOTTOM_Y - TOP_Y);
+      const keys = [
+        [0.00, 42], [0.06, 72], [0.12, 96], [0.20, 118],
+        [0.30, 130], [0.38, 108], [0.43, 58], [0.47, 30],
+        [0.50, 22], [0.53, 30], [0.57, 58], [0.62, 108],
+        [0.70, 130], [0.80, 118], [0.88, 96], [0.94, 72],
+        [1.00, 42]
+      ];
+      for (let i = 0; i < keys.length - 1; i++) {
+        if (t >= keys[i][0] && t <= keys[i + 1][0]) {
+          const localT = (t - keys[i][0]) / (keys[i + 1][0] - keys[i][0]);
+          const smooth = (1 - Math.cos(localT * Math.PI)) / 2;
+          return keys[i][1] + (keys[i + 1][1] - keys[i][1]) * smooth;
+        }
+      }
+      if (t < keys[0][0]) return keys[0][1];
+      return keys[keys.length - 1][1];
+    }
+
+    function initCtrlPoints(loadSaved) {
+      ctrlPoints = [];
+      let savedRadii = null;
+      if (loadSaved) {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (raw) {
+            savedRadii = JSON.parse(raw);
+          }
+        } catch (e) { savedRadii = null; }
+      }
+      for (let i = 0; i < NUM_CTRL_POINTS; i++) {
+        const y = TOP_Y + (BOTTOM_Y - TOP_Y) * i / (NUM_CTRL_POINTS - 1);
+        const dr = getDefaultRadius(y);
+        let r = dr;
+        if (savedRadii && Array.isArray(savedRadii) && savedRadii.length === NUM_CTRL_POINTS) {
+          r = Math.max(MIN_RADIUS, Math.min(MAX_RADIUS, savedRadii[i] || dr));
+        }
+        ctrlPoints.push({
+          y: y,
+          radius: r,
+          defaultRadius: dr,
+          targetRadius: r
+        });
+      }
+      shapeDirty = true;
+    }
+
+    // Catmull-Rom補間で任意のyでの半径を取得
+    function getRadiusAt(y, pts) {
+      if (!pts || pts.length === 0) return 20;
+      if (y <= pts[0].y) return pts[0].radius;
+      if (y >= pts[pts.length - 1].y) return pts[pts.length - 1].radius;
+      for (let i = 0; i < pts.length - 1; i++) {
+        if (y >= pts[i].y && y <= pts[i + 1].y) {
+          const p0 = pts[Math.max(0, i - 1)];
+          const p1 = pts[i];
+          const p2 = pts[i + 1];
+          const p3 = pts[Math.min(pts.length - 1, i + 2)];
+          const t = (y - p1.y) / (p2.y - p1.y);
+          const t2 = t * t;
+          const t3 = t2 * t;
+          const result = 0.5 * (
+            (2 * p1.radius) +
+            (-p0.radius + p2.radius) * t +
+            (2 * p0.radius - 5 * p1.radius + 4 * p2.radius - p3.radius) * t2 +
+            (-p0.radius + 3 * p1.radius - 3 * p2.radius + p3.radius) * t3
+          );
+          return Math.max(MIN_RADIUS, Math.min(MAX_RADIUS, result));
+        }
+      }
+      return 20;
+    }
+
+    // ============ パーティクル ============
+    function initParticles() {
+      particles = [];
+      for (let i = 0; i < NUM_PARTICLES; i++) {
+        const y = TOP_Y + 18 + Math.random() * (NECK_Y - TOP_Y - 50);
+        const r = getRadiusAt(y, ctrlPoints) - 6;
+        const x = CENTER_X + (Math.random() * 2 - 1) * Math.max(0, r) * 0.85;
+        particles.push({
+          x: x,
+          y: y,
+          vx: (Math.random() - 0.5) * 0.4,
+          vy: Math.random() * 0.6,
+          settled: false
+        });
+      }
+    }
+
+    function resetAllParticles() {
+      particles = [];
+      for (let i = 0; i < NUM_PARTICLES; i++) {
+        const y = TOP_Y + 18 + Math.random() * (NECK_Y - TOP_Y - 50);
+        const r = getRadiusAt(y, ctrlPoints) - 6;
+        const x = CENTER_X + (Math.random() * 2 - 1) * Math.max(0, r) * 0.85;
+        particles.push({
+          x: x,
+          y: y,
+          vx: (Math.random() - 0.5) * 0.4,
+          vy: Math.random() * 0.6,
+          settled: false
+        });
+      }
+    }
+
+    // ============ 変形 ============
+    function deformAt(py, px) {
+      if (!ctrlPoints.length) return;
+      const targetR = Math.max(MIN_RADIUS, Math.min(MAX_RADIUS * 0.9, Math.abs(px - CENTER_X)));
+      let closestIdx = 0;
+      let minDist = Infinity;
+      for (let i = 0; i < ctrlPoints.length; i++) {
+        const d = Math.abs(ctrlPoints[i].y - py);
+        if (d < minDist) { minDist = d; closestIdx = i; }
+      }
+      const sigma = 65;
+      for (let i = 0; i < ctrlPoints.length; i++) {
+        const d = Math.abs(ctrlPoints[i].y - ctrlPoints[closestIdx].y);
+        const falloff = Math.exp(-(d * d) / (2 * sigma * sigma));
+        if (falloff > 0.04) {
+          const desiredR = ctrlPoints[i].defaultRadius + (targetR - ctrlPoints[i].defaultRadius);
+          ctrlPoints[i].targetRadius = ctrlPoints[i].targetRadius * (1 - falloff * 0.85) + desiredR * (falloff * 0.85);
+          ctrlPoints[i].targetRadius = Math.max(MIN_RADIUS, Math.min(MAX_RADIUS, ctrlPoints[i].targetRadius));
+        }
+      }
+      shapeDirty = true;
+    }
+
+    function resetShape() {
+      for (let i = 0; i < ctrlPoints.length; i++) {
+        ctrlPoints[i].radius = ctrlPoints[i].defaultRadius;
+        ctrlPoints[i].targetRadius = ctrlPoints[i].defaultRadius;
+      }
+      shapeDirty = true;
+    }
+
+    // ============ 反転 ============
+    function doFlip() {
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        p.y = BOTTOM_Y + TOP_Y - p.y;
+        p.vy = -p.vy * 0.45;
+        p.x = CENTER_X + (p.x - CENTER_X) * 0.92;
+        p.settled = false;
+      }
+      flipFlash = 1.0;
+    }
+
+    // ============ ローカルストレージ保存 ============
+    function saveShape() {
+      try {
+        const radii = ctrlPoints.map(cp => Math.round(cp.radius * 100) / 100);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(radii));
+      } catch (e) {
+        // 保存できなくても動作は継続
+      }
+    }
+
+    // ============ 画面描画 ============
+    function getColors() {
+      if (isDark) {
+        return {
+          bgTop: '#1a1a2e',
+          bgBottom: '#0e0e18',
+          glassFill: 'rgba(255,255,255,0.05)',
+          glassFill2: 'rgba(200,210,255,0.04)',
+          glassBorder: 'rgba(255,255,255,0.42)',
+          glassHighlight: 'rgba(255,255,255,0.2)',
+          rim: 'rgba(255,255,255,0.55)',
+          sand: '#d4a054',
+          sandDark: '#b8843c',
+          sandGlow: 'rgba(212,160,84,0.35)',
+          flash: 'rgba(255,240,200,0.5)'
+        };
+      } else {
+        return {
+          bgTop: '#faf6ee',
+          bgBottom: '#e8e0d0',
+          glassFill: 'rgba(0,0,0,0.03)',
+          glassFill2: 'rgba(120,140,160,0.03)',
+          glassBorder: 'rgba(0,0,0,0.28)',
+          glassHighlight: 'rgba(255,255,255,0.6)',
+          rim: 'rgba(0,0,0,0.4)',
+          sand: '#c89040',
+          sandDark: '#a06e30',
+          sandGlow: 'rgba(200,144,64,0.3)',
+          flash: 'rgba(255,220,150,0.6)'
+        };
+      }
+    }
+
+    function drawBackground(c) {
+      const grad = ctx.createLinearGradient(0, 0, 0, CH);
+      grad.addColorStop(0, c.bgTop);
+      grad.addColorStop(1, c.bgBottom);
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, CW, CH);
+    }
+
+    function drawSand(c) {
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        const shade = p.y > NECK_Y && p.settled ? c.sandDark : c.sand;
+        ctx.fillStyle = shade;
+        const size = p.settled ? 2.6 : 2.2;
+        ctx.fillRect(p.x - size / 2, p.y - size / 2, size, size);
+      }
+      if (flipFlash > 0.05) {
+        ctx.fillStyle = c.flash;
+        ctx.globalAlpha = flipFlash * 0.6;
+        ctx.fillRect(0, 0, CW, CH);
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    function drawGlass(c) {
+      const step = 2.5;
+      const leftPoints = [];
+      const rightPoints = [];
+      for (let y = TOP_Y; y <= BOTTOM_Y; y += step) {
+        const r = getRadiusAt(y, ctrlPoints);
+        leftPoints.push({ x: CENTER_X - r, y: y });
+        rightPoints.push({ x: CENTER_X + r, y: y });
+      }
+      const allPoints = leftPoints.concat(rightPoints.slice().reverse());
+
+      // ガラスの内部塗り
+      ctx.beginPath();
+      ctx.moveTo(allPoints[0].x, allPoints[0].y);
+      for (let i = 1; i < allPoints.length; i++) {
+        ctx.lineTo(allPoints[i].x, allPoints[i].y);
+      }
+      ctx.closePath();
+
+      const fillGrad = ctx.createLinearGradient(0, TOP_Y, 0, BOTTOM_Y);
+      fillGrad.addColorStop(0, c.glassFill);
+      fillGrad.addColorStop(0.45, c.glassFill2);
+      fillGrad.addColorStop(0.55, c.glassFill2);
+      fillGrad.addColorStop(1, c.glassFill);
+      ctx.fillStyle = fillGrad;
+      ctx.fill();
+
+      // 輪郭線
+      ctx.beginPath();
+      for (let i = 0; i < leftPoints.length; i++) {
+        if (i === 0) ctx.moveTo(leftPoints[i].x, leftPoints[i].y);
+        else ctx.lineTo(leftPoints[i].x, leftPoints[i].y);
+      }
+      for (let i = rightPoints.length - 1; i >= 0; i--) {
+        if (i === rightPoints.length - 1) ctx.lineTo(rightPoints[i].x, rightPoints[i].y);
+        else ctx.lineTo(rightPoints[i].x, rightPoints[i].y);
+      }
+      ctx.closePath();
+      ctx.strokeStyle = c.glassBorder;
+      ctx.lineWidth = 2.2;
+      ctx.stroke();
+
+      // ハイライト
+      ctx.beginPath();
+      for (let i = 0; i < leftPoints.length; i++) {
+        const lx = leftPoints[i].x + 6;
+        const ly = leftPoints[i].y;
+        if (i === 0) ctx.moveTo(lx, ly);
+        else ctx.lineTo(lx, ly);
+      }
+      ctx.strokeStyle = c.glassHighlight;
+      ctx.lineWidth = 1.4;
+      ctx.globalAlpha = 0.55;
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+
+      // 上下の縁
+      const topR = getRadiusAt(TOP_Y, ctrlPoints);
+      const botR = getRadiusAt(BOTTOM_Y, ctrlPoints);
+      ctx.strokeStyle = c.rim;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(CENTER_X - topR, TOP_Y);
+      ctx.lineTo(CENTER_X + topR, TOP_Y);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(CENTER_X - botR, BOTTOM_Y);
+      ctx.lineTo(CENTER_X + botR, BOTTOM_Y);
+      ctx.stroke();
+
+      // くびれエフェクト
+      const neckR = getRadiusAt(NECK_Y, ctrlPoints);
+      if (neckR > MIN_RADIUS + 1) {
+        ctx.strokeStyle = c.rim;
+        ctx.lineWidth = 1.2;
+        ctx.globalAlpha = 0.4;
+        ctx.beginPath();
+        ctx.arc(CENTER_X, NECK_Y, neckR * 0.55, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    function render() {
+      const c = getColors();
+      drawBackground(c);
+      drawSand(c);
+      drawGlass(c);
+    }
+
+    // ============ 物理更新 ============
+    function updatePhysics(dt) {
+      const speedFactor = reducedMotion ? 0.45 : 1.0;
+      const dtScaled = dt * speedFactor;
+
+      // 制御点のスプリング
+      for (let i = 0; i < ctrlPoints.length; i++) {
+        const cp = ctrlPoints[i];
+        cp.radius += (cp.targetRadius - cp.radius) * 0.14;
+        cp.radius = Math.max(MIN_RADIUS, Math.min(MAX_RADIUS, cp.radius));
+      }
+
+      // パーティクル更新
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+
+        if (!p.settled) {
+          p.vy += 0.11 * dtScaled;
+          p.vx *= 0.998;
+          p.vy *= 0.998;
+
+          p.x += p.vx * dtScaled;
+          p.y += p.vy * dtScaled;
+
+          const r = getRadiusAt(p.y, ctrlPoints);
+          const limit = r - 3.5;
+          if (p.x - CENTER_X > limit) {
+            p.x = CENTER_X + limit;
+            p.vx = -p.vx * 0.4;
+          } else if (CENTER_X - p.x > limit) {
+            p.x = CENTER_X - limit;
+            p.vx = -p.vx * 0.4;
+          }
+
+          if (p.y < TOP_Y + 4) {
+            p.y = TOP_Y + 4;
+            p.vy = Math.abs(p.vy) * 0.15;
+          }
+          if (p.y > BOTTOM_Y - 4) {
+            p.y = BOTTOM_Y - 4;
+            p.vy = -Math.abs(p.vy) * 0.3;
+          }
+
+          // 下半分での沈殿判定
+          if (p.y > NECK_Y + 20) {
+            const spd = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+            if (spd < 0.4) {
+              p.vy *= 0.82;
+              p.vx *= 0.82;
+              if (spd < 0.06 && Math.abs(p.vy) < 0.08) {
+                p.vy = 0;
+                p.vx = 0;
+                p.settled = true;
+              }
+            }
+          } else {
+            p.settled = false;
+          }
+        } else {
+          p.vx *= 0.85;
+          p.vy *= 0.85;
+          if (Math.abs(p.vx) < 0.005) p.vx = 0;
+          if (Math.abs(p.vy) < 0.005) p.vy = 0;
+          p.x += p.vx * dtScaled;
+          p.y += p.vy * dtScaled;
+          const r = getRadiusAt(p.y, ctrlPoints);
+          const limit = r - 3;
+          if (p.x - CENTER_X > limit) {
+            p.x = CENTER_X + limit;
+            p.vx = -p.vx * 0.3;
+          } else if (CENTER_X - p.x > limit) {
+            p.x = CENTER_X - limit;
+            p.vx = -p.vx * 0.3;
+          }
+          if (p.y < TOP_Y + 4) {
+            p.y = TOP_Y + 4;
+            p.settled = false;
+          }
+          if (p.y > BOTTOM_Y - 4) {
+            p.y = BOTTOM_Y - 4;
+          }
+        }
+      }
+
+      // 反転判定
+      let upperCount = 0;
+      for (let i = 0; i < particles.length; i++) {
+        if (particles[i].y < NECK_Y - 10) upperCount++;
+      }
+      if (upperCount < Math.max(8, NUM_PARTICLES * 0.025)) {
+        doFlip();
+      }
+
+      // フラッシュ減衰
+      if (flipFlash > 0) {
+        flipFlash *= 0.92;
+        if (flipFlash < 0.01) flipFlash = 0;
+      }
+    }
+
+    // ============ アニメーションループ ============
+    function animate(timestamp) {
+      animId = requestAnimationFrame(animate);
+      if (lastTime === null) {
+        lastTime = timestamp;
+        render();
+        return;
+      }
+      let dt = (timestamp - lastTime) / 16.67;
+      lastTime = timestamp;
+      if (dt > 3) dt = 3;
+      if (dt <= 0) dt = 0.016;
+
+      try {
+        if (reducedMotion && frameCount % 3 !== 0) {
+          frameCount++;
+          return;
+        }
+        updatePhysics(dt);
+        render();
+        frameCount++;
+        if (shapeDirty && frameCount % 60 === 0) {
+          saveShape();
+          shapeDirty = false;
+        }
+      } catch (err) {
+        console.warn('animation error', err);
+        render();
+      }
+    }
+
+    // ============ ポインター操作 ============
+    function getCanvasCoords(clientX, clientY) {
+      const rect = canvas.getBoundingClientRect();
+      const x = (clientX - rect.left) * (CW / rect.width);
+      const y = (clientY - rect.top) * (CH / rect.height);
+      return { x: Math.max(0, Math.min(CW, x)), y: Math.max(0, Math.min(CH, y)) };
+    }
+
+    function onPointerDown(e) {
+      e.preventDefault();
+      isDragging = true;
+      const coords = getCanvasCoords(e.clientX, e.clientY);
+      pointerX = coords.x;
+      pointerY = coords.y;
+      deformAt(pointerY, pointerX);
+      canvas.setPointerCapture(e.pointerId);
+    }
+
+    function onPointerMove(e) {
+      if (!isDragging) return;
+      e.preventDefault();
+      const coords = getCanvasCoords(e.clientX, e.clientY);
+      pointerX = coords.x;
+      pointerY = coords.y;
+      deformAt(pointerY, pointerX);
+    }
+
+    function onPointerUp(e) {
+      if (isDragging) {
+        isDragging = false;
+        shapeDirty = true;
+        saveShape();
+        try { canvas.releasePointerCapture(e.pointerId); } catch (err) {}
+      }
+    }
+
+    function onPointerCancel(e) {
+      isDragging = false;
+      shapeDirty = true;
+      saveShape();
+      try { canvas.releasePointerCapture(e.pointerId); } catch (err) {}
+    }
+
+    canvas.addEventListener('pointerdown', onPointerDown);
+    canvas.addEventListener('pointermove', onPointerMove);
+    canvas.addEventListener('pointerup', onPointerUp);
+    canvas.addEventListener('pointercancel', onPointerCancel);
+
+    // ============ リセット ============
+    resetBtn.addEventListener('click', function() {
+      try {
+        resetShape();
+        resetAllParticles();
+        flipFlash = 0;
+        saveShape();
+        render();
+      } catch (err) {
+        console.warn('reset error', err);
+      }
+    });
+
+    // ============ テーマ変更監視 ============
+    darkQuery.addEventListener('change', function(e) {
+      isDark = e.matches;
+      render();
+    });
+    reducedMotionQuery.addEventListener('change', function(e) {
+      reducedMotion = e.matches;
+    });
+
+    // ============ 初期化 ============
+    function init() {
+      initCtrlPoints(true);
+      initParticles();
+      shapeDirty = false;
+      render();
+      lastTime = null;
+      frameCount = 0;
+      if (animId) cancelAnimationFrame(animId);
+      animId = requestAnimationFrame(animate);
+    }
+
+    init();
+
+    // ページ非表示時のクリーンアップ
+    document.addEventListener('visibilitychange', function() {
+      if (document.hidden) {
+        if (animId) cancelAnimationFrame(animId);
+        animId = null;
+        lastTime = null;
+      } else {
+        if (!animId) {
+          lastTime = null;
+          animId = requestAnimationFrame(animate);
+        }
+      }
+    });
+
+    // ウィンドウリサイズ時は再描画のみ
+    window.addEventListener('resize', function() {
+      if (!document.hidden) render();
+    });
+
+  } catch (err) {
+    console.error('初期化エラー', err);
+    try {
+      const canvas = document.getElementById('canvas');
+      const ctx2 = canvas.getContext('2d');
+      ctx2.fillStyle = '#f5f0e6';
+      ctx2.fillRect(0, 0, 600, 800);
+      ctx2.fillStyle = '#c89040';
+      ctx2.font = '16px sans-serif';
+      ctx2.fillText('砂時計を読み込めませんでした', 200, 400);
+    } catch (e2) {}
+  }
+})();
+</script>
+</body>
+</html>
