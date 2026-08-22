@@ -53,4 +53,4 @@
 - Worker は `workers/gallery/`（D1: DB / R2: APPS）。スキーマは `migrations/`。
 - アプリを追加したら `npm run thumbs` → `npm run seed:local` → ローカルで動作確認 → PR。
 - 本番投入は `npx wrangler d1 migrations apply daily-app-factory-db --remote --config workers/gallery/wrangler.toml` → `npm run seed` → `npm run deploy`。
-- シークレット・DB ID はコミットしない。`workers/gallery/wrangler.toml` の `database_id` はデプロイ時に発行された値へ更新する（本番 ID をコミットする場合は env 分離を検討）。
+- シークレット（API キー等）はコミットしない。D1 の `database_id` はリソース ID であり、`workers/gallery/wrangler.toml` に記載してコミットしてよい。
