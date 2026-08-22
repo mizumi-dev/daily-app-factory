@@ -16,6 +16,7 @@ const GENERATED_DIR = join(ROOT, "generated");
 
 const API_URL = "https://api.deepseek.com/responses";
 const DEFAULT_MODEL = "deepseek-v4-pro";
+const DEFAULT_IMPL_MODEL = "deepseek-v4-flash";
 const MAX_PLAN_ATTEMPTS = 3;
 
 // オフピーク料金（USD/1M tokens）。着手時に公式料金ページで再確認すること。
@@ -46,15 +47,16 @@ const AXIS_LABELS = {
 
 function usage() {
   console.log(`使い方:
-  node scripts/generate.mjs --brief "お題" [--axis laugh|lighten|productivity|insight|decide|wonder|duo] [--model deepseek-v4-pro]
+  node scripts/generate.mjs --brief "お題" [--axis laugh|lighten|productivity|insight|decide|wonder|duo] [--model deepseek-v4-pro] [--impl-model deepseek-v4-flash]
 
   --brief   お題テキスト（必須）
   --axis    軸（省略時は曜日から自動割り当て）
-  --model   DeepSeek モデル（既定: deepseek-v4-pro）`);
+  --model   企画（spec 生成）に使うモデル（既定: deepseek-v4-pro）
+  --impl-model  実装（HTML 生成）に使うモデル（既定: deepseek-v4-flash）`);
 }
 
 function parseArgs(argv) {
-  const args = { brief: null, axis: null, model: DEFAULT_MODEL, help: false };
+  const args = { brief: null, axis: null, model: DEFAULT_MODEL, implModel: DEFAULT_IMPL_MODEL, help: false };
   for (let i = 0; i < argv.length; i++) {
     switch (argv[i]) {
       case "--brief":
@@ -65,6 +67,9 @@ function parseArgs(argv) {
         break;
       case "--model":
         args.model = argv[++i];
+        break;
+      case "--impl-model":
+        args.implModel = argv[++i];
         break;
       case "--help":
       case "-h":
@@ -121,7 +126,7 @@ function sleep(ms) {
   return new Promise((resolvePromise) => setTimeout(resolvePromise, ms));
 }
 
-async function callDeepSeek({ key, model, instructions, input, timeoutMs = 180000 }) {
+async function callDeepSeek({ key, model, instructions, input, timeoutMs = 300000 }) {
   const res = await fetch(API_URL, {
     method: "POST",
     headers: {
@@ -153,6 +158,33 @@ async function callWithRetry(fn, attempts = 3) {
     }
   }
   throw lastError;
+}
+
+// 実装ステップはコスト・速度優先のため Chat Completions（非思考モード）で呼ぶ。
+// DeepSeek 公式: {"thinking": {"type": "disabled"}} で思考モードをオフにできる。
+async function callChatCompletions({ key, model, system, user, timeoutMs = 600000 }) {
+  const res = await fetch("https://api.deepseek.com/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${key}`,
+    },
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: user },
+      ],
+      thinking: { type: "disabled" },
+      stream: false,
+    }),
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`DeepSeek API ${res.status}: ${body.slice(0, 500)}`);
+  }
+  return res.json();
 }
 
 function extractJson(raw) {
@@ -208,9 +240,10 @@ function validateSpec(spec) {
 function estimateCost(model, usage) {
   if (!usage) return null;
   const price = model.includes("pro") ? PRICING.pro : PRICING.flash;
-  const inputTokens = usage.input_tokens ?? 0;
-  const cached = usage.input_tokens_details?.cached_tokens ?? 0;
-  const outputTokens = usage.output_tokens ?? 0;
+  const inputTokens = usage.input_tokens ?? usage.prompt_tokens ?? 0;
+  const cached =
+    usage.input_tokens_details?.cached_tokens ?? usage.prompt_cache_hit_tokens ?? 0;
+  const outputTokens = usage.output_tokens ?? usage.completion_tokens ?? 0;
   const usd =
     ((inputTokens - cached) * price.cacheMiss + cached * price.cacheHit + outputTokens * price.output) / 1e6;
   return { inputTokens, cached, outputTokens, usd };
@@ -319,14 +352,16 @@ ${houseStyle}
 ${JSON.stringify(spec, null, 2)}`;
 
   console.log(`[実装] ${model}`);
-  const payload = await callWithRetry(() => callDeepSeek({ key, model, instructions, input, timeoutMs: 240000 }));
+  const payload = await callWithRetry(() =>
+    callChatCompletions({ key, model, system: instructions, user: input, timeoutMs: 600000 })
+  );
   const cost = estimateCost(model, payload.usage);
   if (cost) {
     console.log(
       `  tokens: in=${cost.inputTokens} (cached=${cost.cached}) out=${cost.outputTokens} cost=$${cost.usd.toFixed(4)}`
     );
   }
-  const raw = extractOutputText(payload);
+  const raw = payload.choices?.[0]?.message?.content ?? "";
   return stripCodeFence(raw);
 }
 
@@ -385,7 +420,7 @@ async function main() {
   console.log(`日刊アプリ工房 Phase 0 パイプライン
   お題: ${args.brief}
   軸: ${axis}（${AXIS_LABELS[axis]}）
-  モデル: ${args.model}`);
+  モデル: 企画=${args.model} / 実装=${args.implModel}`);
 
   const catalog = loadCatalog();
   if (catalog.length > 0) console.log(`  既存カタログ: ${catalog.length} 本`);
@@ -393,7 +428,7 @@ async function main() {
   const { spec } = await planApp({ key, model: args.model, brief: args.brief, axis, catalog });
   console.log(`  企画: ${spec.title}（${spec.tags.join(", ")}）`);
 
-  const html = await implementApp({ key, model: args.model, spec, brief: args.brief, axis });
+  const html = await implementApp({ key, model: args.implModel, spec, brief: args.brief, axis });
 
   const date = todayIso();
   const outDir = join(GENERATED_DIR, `${date}-${spec.slug}`);

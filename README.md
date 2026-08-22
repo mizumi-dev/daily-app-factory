@@ -40,6 +40,7 @@ npm run feedback -- list                      # アプリごとのフィード�
 3. `generated/YYYY-MM-DD-<slug>/index.html` をブラウザで開き、検証チェックリスト（AGENTS.md 参照）を目視確認する。
 
 ハウススタイル規約は [config/house-style.md](config/house-style.md) にあり、毎回の生成プロンプトの固定部分として使われる。
+モデル分担は、企画（spec 生成）が `deepseek-v4-pro`、実装（HTML 生成）が `deepseek-v4-flash`（コスト優先・高速）。必要なら `--model` / `--impl-model` で上書きできる。
 
 ## アプリごとのフィードバック
 
