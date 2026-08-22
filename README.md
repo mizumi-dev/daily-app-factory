@@ -23,7 +23,22 @@ DeepSeek V4 が毎日 1 本、単一 HTML のアプリを企画・実装・検�
 
 ```bash
 npm run check   # リポジトリ健全性チェック（CI でも実行）
+npm run generate -- --brief "お題"            # Phase 0: アプリを1本生成
+npm run verify -- generated/.../index.html    # 生成アプリの静的検証
 ```
+
+## Phase 0: 手動 1 本パイプライン
+
+1. `.dev.vars.example` を `.dev.vars` にコピーし、DeepSeek API キーを記入する（`.dev.vars` はコミットされない）。
+2. 生成する:
+
+   ```bash
+   npm run generate -- --brief "3分後にそっと消えるメモ" --axis lighten
+   ```
+
+3. `generated/YYYY-MM-DD-<slug>/index.html` をブラウザで開き、検証チェックリスト（AGENTS.md 参照）を目視確認する。
+
+ハウススタイル規約は [config/house-style.md](config/house-style.md) にあり、毎回の生成プロンプトの固定部分として使われる。
 
 ## GitHub 運用
 

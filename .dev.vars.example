@@ -1,0 +1,5 @@
+# このファイルを .dev.vars にコピーして値を埋める（.dev.vars はコミットしない）
+# DeepSeek API キー: https://platform.deepseek.com で取得
+DEEPSEEK_API_KEY=sk-xxxxxxxxxxxxxxxx
+# 通知先（Phase 2 で使用）
+NOTIFY_WEBHOOK_URL=
