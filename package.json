@@ -11,6 +11,7 @@
     "check": "node scripts/check.mjs",
     "generate": "node scripts/generate.mjs",
     "verify": "node scripts/verify-app.mjs",
-    "feedback": "node scripts/feedback.mjs"
+    "feedback": "node scripts/feedback.mjs",
+    "dashboard": "node scripts/dashboard.mjs"
   }
 }

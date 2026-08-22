@@ -42,3 +42,8 @@
 - 一覧: `npm run feedback -- list [slug]`
 - 対応済みにする: `npm run feedback -- resolve <slug> <番号>`（番号は list で確認）
 - 集計一覧は `feedback/index.md` に自動反映される
+
+## ダッシュボード
+
+- 生成アプリの一覧は `npm run dashboard` で `dashboard/index.html` に生成する（GitHub Pages でも公開）。
+- アプリを追加・更新したら必ず `npm run dashboard` を実行してからコミットする。
