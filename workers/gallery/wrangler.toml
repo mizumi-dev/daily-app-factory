@@ -11,3 +11,19 @@ migrations_dir = "../../migrations"
 [[r2_buckets]]
 binding = "APPS"
 bucket_name = "daily-app-factory-apps"
+
+[[kv_namespaces]]
+binding = "CACHE"
+id = "d3fbe613c6144cdc9557cc275e25ca2a"
+
+[[queues.producers]]
+binding = "PIPELINE_QUEUE"
+queue = "daily-pipeline"
+
+[[queues.consumers]]
+queue = "daily-pipeline"
+max_batch_size = 1
+max_retries = 0
+
+[triggers]
+crons = ["0 17 * * *", "0 19 * * *"]
