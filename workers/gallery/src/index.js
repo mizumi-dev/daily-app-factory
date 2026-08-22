@@ -1,12 +1,39 @@
 // 日刊アプリ工房 ギャラリー Worker
 import { listApps, getApp, facets, sortKeys } from "./store.js";
 import { renderGallery } from "./gallery.js";
+import { runPipeline, statusReport } from "./pipeline.js";
+import { collectSignals } from "./signals.js";
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     const pathname = url.pathname;
     try {
+      if (request.method === "POST") {
+        if (pathname === "/_run") return admin(env, request, async () => {
+          const body = await request.json().catch(() => ({}));
+          const result = await runPipeline(env, null, { brief: body.brief || "" });
+          return json(result);
+        });
+        if (pathname === "/_collect") return admin(env, request, async () => {
+          const result = await collectSignals(env, null);
+          return json(result);
+        });
+        if (pathname === "/_pause") return admin(env, request, async () => {
+          await env.CACHE.put("paused", "true");
+          return json({ paused: true });
+        });
+        if (pathname === "/_resume") return admin(env, request, async () => {
+          await env.CACHE.put("paused", "false");
+          return json({ paused: false });
+        });
+      }
+      if (pathname === "/_status") {
+        if (env.ADMIN_TOKEN && request.headers.get("x-admin-token") !== env.ADMIN_TOKEN) {
+          return new Response("Forbidden", { status: 403 });
+        }
+        return json(await statusReport(env));
+      }
       if (pathname === "/" || pathname === "/index.html") return galleryPage(request, env, url);
       if (pathname === "/api/apps") return appsJson(request, env, url);
       if (pathname.startsWith("/app/")) return appRoute(env, pathname);
@@ -18,7 +45,29 @@ export default {
       return new Response(`Server Error: ${esc(err.message)}`, { status: 500, headers: htmlHeaders() });
     }
   },
+
+  async scheduled(event, env, ctx) {
+    if (event.cron === "0 17 * * *") {
+      await ctx.waitUntil(collectSignals(env, ctx));
+    } else {
+      // 19:00 UTC = 翌 04:00 JST
+      await ctx.waitUntil(env.PIPELINE_QUEUE.send({ type: "daily" }));
+    }
+  },
+
+  async queue(batch, env) {
+    for (const msg of batch.messages) {
+      await runPipeline(env, null, {});
+    }
+  },
 };
+
+async function admin(env, request, handler) {
+  if (env.ADMIN_TOKEN && request.headers.get("x-admin-token") !== env.ADMIN_TOKEN) {
+    return new Response("Forbidden", { status: 403 });
+  }
+  return handler();
+}
 
 function htmlHeaders() {
   return { "Content-Type": "text/html; charset=utf-8", "X-Content-Type-Options": "nosniff" };
