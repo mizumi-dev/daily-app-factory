@@ -33,3 +33,11 @@
 - 生成: `npm run generate -- --brief "お題" [--axis 軸] [--model deepseek-v4-pro]`
 - 静的検証: `npm run verify -- generated/YYYY-MM-DD-<slug>/index.html`
 - API キーは `.dev.vars`（gitignore 対象）に `DEEPSEEK_API_KEY=sk-...` で置く
+
+## アプリごとのフィードバック
+
+- 生成アプリへの意見は、そのアプリの `generated/<日付>-<slug>/feedback.md` に1件ずつ記録する。ハウススタイル規約（config/house-style.md）には一般化しない。
+- 追加: `npm run feedback -- add <slug> "<意見>"`
+- 一覧: `npm run feedback -- list [slug]`
+- 対応済みにする: `npm run feedback -- resolve <slug> <番号>`（番号は list で確認）
+- 集計一覧は `feedback/index.md` に自動反映される
