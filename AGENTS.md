@@ -27,3 +27,9 @@
 4. 375px 幅で横スクロールしない
 5. ファイルサイズ 200KB 以下
 6. ダークモード対応・空状態でも動く
+
+## Phase 0 のコマンド
+
+- 生成: `npm run generate -- --brief "お題" [--axis 軸] [--model deepseek-v4-pro]`
+- 静的検証: `npm run verify -- generated/YYYY-MM-DD-<slug>/index.html`
+- API キーは `.dev.vars`（gitignore 対象）に `DEEPSEEK_API_KEY=sk-...` で置く

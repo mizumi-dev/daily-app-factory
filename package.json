@@ -8,6 +8,8 @@
     "node": ">=20"
   },
   "scripts": {
-    "check": "node scripts/check.mjs"
+    "check": "node scripts/check.mjs",
+    "generate": "node scripts/generate.mjs",
+    "verify": "node scripts/verify-app.mjs"
   }
 }
