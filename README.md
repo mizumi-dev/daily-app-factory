@@ -52,6 +52,16 @@ npm run deploy
 
 ルーティング: `/`（ギャラリー SSR）・`/api/apps`（JSON）・`/app/:slug`（アプリ本体）・`/app/:slug/thumb.svg`・`/sitemap.xml`・`/feed.xml`。
 
+## Phase 3: お題投稿欄
+
+ギャラリー上部のフォームからお題を投稿できる（ログイン不要・10〜300文字）。
+
+- `POST /api/briefs`: Turnstile 検証 → レート制限（IP 1日3件 / 全体50件）→ V4-Flash モデレーション → キュー投入
+- `GET /brief/:token`: 追跡ページ（待ち行列位置・着手予定日・結果 URL）
+- パイプラインは毎朝 `queued` のお題を最優先で制作する
+
+Turnstile は現在テストキー（常に通過）。本番公開前に Cloudflare ダッシュボードでウィジェットを作成し、`TURNSTILE_SITE_KEY`（vars）と `TURNSTILE_SECRET_KEY`（secret）を差し替えること。
+
 ## Phase 0: 手動 1 本パイプライン
 
 1. `.dev.vars.example` を `.dev.vars` にコピーし、DeepSeek API キーを記入する（`.dev.vars` はコミットされない）。

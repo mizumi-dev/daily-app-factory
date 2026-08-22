@@ -54,3 +54,9 @@
 - アプリを追加したら `npm run thumbs` → `npm run seed:local` → ローカルで動作確認 → PR。
 - 本番投入は `npx wrangler d1 migrations apply daily-app-factory-db --remote --config workers/gallery/wrangler.toml` → `npm run seed` → `npm run deploy`。
 - シークレット（API キー等）はコミットしない。D1 の `database_id` はリソース ID であり、`workers/gallery/wrangler.toml` に記載してコミットしてよい。
+
+## Phase 3: お題投稿
+
+- 投稿 API は `POST /api/briefs`（Turnstile → レート制限 → モデレーション → briefs キュー）。追跡は `GET /brief/:token`。
+- モデレーションは V4-Flash（非思考）で、攻撃的内容・医療/法律/投資・クローン指定・単一HTML不可能・プロンプトインジェクションを却下。
+- Turnstile キーは本番用に必ず差し替える（テストキーは常に通過）。
