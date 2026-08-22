@@ -33,7 +33,7 @@
 - 生成: `npm run generate -- --brief "お題" [--axis 軸] [--model 企画モデル] [--impl-model 実装モデル]`
 - 静的検証: `npm run verify -- generated/YYYY-MM-DD-<slug>/index.html`
 - API キーは `.dev.vars`（gitignore 対象）に `DEEPSEEK_API_KEY=sk-...` で置く
-- モデル分担: 企画 = `deepseek-v4-pro`（既定）/ 実装 = `deepseek-v4-flash`（既定・コスト優先）
+- モデル分担: 企画 = `deepseek-v4-pro`（思考）/ 実装 = `deepseek-v4-flash`（非思考・コスト優先）。実装が2回検証失敗したら最終試行のみ `deepseek-v4-pro`（非思考）へエスカレーション。
 
 ## アプリごとのフィードバック
 
