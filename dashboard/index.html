@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>日刊アプリ工房 ダッシュボード</title>
+<style>:root{--bg:#0f0e17;--bg-soft:#17161f;--panel:rgba(255,255,255,0.045);--text:#e8e4da;--text-soft:#9c9487;--accent:#ff8c42;--border:rgba(255,255,255,0.09);--ok:#7fd6a8}
+@media(prefers-color-scheme:light){:root{--bg:#faf6ee;--bg-soft:#f2ecdf;--panel:rgba(0,0,0,0.045);--text:#2f2b26;--text-soft:#7c7466;--border:rgba(0,0,0,0.12)}}
+*{box-sizing:border-box;margin:0;padding:0}body{font-family:"Hiragino Sans","Yu Gothic",Meiryo,"Noto Sans JP",sans-serif;background:var(--bg);color:var(--text);min-height:100%;display:flex;flex-direction:column;align-items:center;padding:24px 16px 40px;line-height:1.6}
+main{max-width:1080px;width:100%}header{text-align:center;margin-bottom:18px}h1{font-size:clamp(1.4rem,4.6vw,1.8rem);letter-spacing:0.02em}.sub{color:var(--text-soft);font-size:0.9rem;margin-top:4px}
+.progress-wrap{margin:14px auto 0;max-width:420px}.progress-bar{height:8px;border-radius:999px;background:var(--panel);overflow:hidden}.progress-fill{height:100%;width:0%;background:linear-gradient(90deg,#ff8c42,#ffb347);border-radius:999px;transition:width .3s ease}.progress-label{font-size:0.8rem;color:var(--text-soft);margin-top:6px}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center;background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:12px 14px;margin-bottom:18px}
+.search{flex:1 1 240px;min-width:180px;background:var(--bg-soft);border:1.5px solid var(--border);border-radius:10px;padding:9px 14px;font-size:0.92rem;color:var(--text);outline:none}.search:focus{border-color:var(--accent)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}.chip{border:1px solid var(--border);background:transparent;color:var(--text-soft);border-radius:999px;padding:5px 12px;font-size:0.8rem;cursor:pointer;font-family:inherit;transition:all .18s ease}.chip:hover{border-color:var(--accent);color:var(--text)}.chip.on{background:var(--accent);border-color:var(--accent);color:#1a130a;font-weight:600}
+select.sort{background:var(--bg-soft);border:1.5px solid var(--border);border-radius:10px;padding:8px 10px;font-size:0.85rem;color:var(--text);font-family:inherit;outline:none}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:8px;transition:transform .15s ease,box-shadow .2s ease}.card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,0.18)}
+.card-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.axis-badge{font-size:0.72rem;font-weight:700;padding:3px 10px;border-radius:999px;color:#111;letter-spacing:0.04em}.card h2{font-size:1.02rem;line-height:1.4}.tagline{color:var(--text-soft);font-size:0.85rem;min-height:2.6em}
+.tags{display:flex;flex-wrap:wrap;gap:5px}.tag{font-size:0.72rem;color:var(--text-soft);background:var(--bg-soft);border:1px solid var(--border);border-radius:999px;padding:2px 9px}
+.meta{display:flex;flex-wrap:wrap;gap:8px;font-size:0.75rem;color:var(--text-soft);margin-top:auto}.card-actions{display:flex;gap:8px;align-items:center;margin-top:4px}
+.btn{flex:1;text-align:center;text-decoration:none;border:1.5px solid var(--border);background:transparent;color:var(--text);border-radius:999px;padding:8px 0;font-size:0.85rem;cursor:pointer;font-family:inherit;transition:all .18s ease}.btn:hover{border-color:var(--accent);color:var(--accent)}
+.review{display:flex;align-items:center;gap:6px;font-size:0.82rem;color:var(--text-soft);cursor:pointer;user-select:none}.review input{accent-color:var(--ok);width:16px;height:16px;cursor:pointer}.review.done{color:var(--ok)}
+.fb-badge{font-size:0.72rem;background:rgba(255,140,66,0.16);color:#ffb27a;border:1px solid rgba(255,140,66,0.4);border-radius:999px;padding:2px 9px;text-decoration:none}
+.empty{text-align:center;color:var(--text-soft);padding:48px 0}footer{margin-top:28px;text-align:center;font-size:0.75rem;color:var(--text-soft);opacity:0.7}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,0.72);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}.modal.open{display:flex}
+.modal-box{width:min(880px,100%);height:min(760px,90vh);background:var(--bg);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;border:1px solid var(--border)}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-soft)}.modal-title{font-size:0.9rem;font-weight:600}.modal-close{border:1px solid var(--border);background:transparent;color:var(--text);border-radius:999px;padding:5px 14px;cursor:pointer;font-family:inherit}
+.modal-frame{flex:1;border:0;width:100%;background:#fff}@media(max-width:480px){.grid{grid-template-columns:1fr}.modal{padding:8px}}</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>日刊アプリ工房 ダッシュボード</h1>
+    <p class="sub">生成アプリ一覧（最終更新: 2026/08/22 17:17）</p>
+    <div class="progress-wrap">
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <p class="progress-label" id="progressLabel"></p>
+    </div>
+  </header>
+  <section class="controls">
+    <input class="search" id="search" type="search" placeholder="タイトル・タグライン・タグで検索" aria-label="検索">
+    <div class="chips" id="chips"></div>
+    <select class="sort" id="sort" aria-label="並び順">
+      <option value="new">新しい順</option>
+      <option value="old">古い順</option>
+      <option value="size">サイズ順</option>
+      <option value="name">名前順</option>
+    </select>
+  </section>
+  <section class="grid" id="grid"></section>
+  <footer>日刊アプリ工房 · AI が自動生成したアプリの一覧です</footer>
+</main>
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-label="アプリプレビュー">
+  <div class="modal-box">
+    <div class="modal-head">
+      <span class="modal-title" id="modalTitle"></span>
+      <button class="modal-close" id="modalClose" type="button">閉じる</button>
+    </div>
+    <iframe class="modal-frame" id="modalFrame" sandbox="allow-scripts" title="アプリプレビュー"></iframe>
+  </div>
+</div>
+<script type="application/json" id="apps-data">[{"slug":"3step-choice-scoreboard","title":"迷いを3ステップで断ち切る選択肢スコア表","tagline":"基準と重みで、迷いを数字で断ち切る3ステップ決断ツール","axis":"decide","tags":["決断","比較","スコアリング"],"date":"2026-08-22","bytes":35405,"origin":"user","feedbackOpen":0,"appPath":"../generated/2026-08-22-3step-choice-scoreboard/index.html","feedbackPath":"../generated/2026-08-22-3step-choice-scoreboard/feedback.md"},{"slug":"anger-bonfire-3min","title":"3分後に灰になる怒りの焚き火","tagline":"書いた怒りは、そっと灰に変えて手放す。","axis":"lighten","tags":["吐き出し","浄化","タイマー"],"date":"2026-08-22","bytes":26722,"origin":"user","feedbackOpen":3,"appPath":"../generated/2026-08-22-anger-bonfire-3min/index.html","feedbackPath":"../generated/2026-08-22-anger-bonfire-3min/feedback.md"},{"slug":"daily-3-todo-focus","title":"今日のTODOを3つに絞る集中セレクター","tagline":"やることを減らして、今日を終わらせる。3つだけ選ぶTODO整理","axis":"productivity","tags":["TODO","優先順位","絞り込み"],"date":"2026-08-22","bytes":26956,"origin":"user","feedbackOpen":0,"appPath":"../generated/2026-08-22-daily-3-todo-focus/index.html","feedbackPath":"../generated/2026-08-22-daily-3-todo-focus/feedback.md"},{"slug":"draw-pass-canvas","title":"ふたりで描き継ぐ共有お絵かきキャンバス","tagline":"一筆をURLに載せて送り合う、離れた二人の非同期お絵かき","axis":"duo","tags":["お絵かき","URL共有","非同期"],"date":"2026-08-22","bytes":27609,"origin":"user","feedbackOpen":0,"appPath":"../generated/2026-08-22-draw-pass-canvas/index.html","feedbackPath":"../generated/2026-08-22-draw-pass-canvas/feedback.md"},{"slug":"exaggerated-keigo-converter","title":"言いにくい本音を大げさ敬語に変換する丁寧語マシン","tagline":"本音が丁寧すぎて逆に失礼になる変換遊び","axis":"laugh","tags":["敬語変換","言い換え","ユーモア"],"date":"2026-08-22","bytes":15699,"origin":"user","feedbackOpen":0,"appPath":"../generated/2026-08-22-exaggerated-keigo-converter/index.html","feedbackPath":"../generated/2026-08-22-exaggerated-keigo-converter/feedback.md"},{"slug":"fog-clearing-breath-guide","title":"不安を霧にして呼吸で晴らすガイド","tagline":"もやもやを霧に見立てて、呼吸のリズムでゆっくり手放す。","axis":"lighten","tags":["不安軽減","呼吸可視化","ビジュアライゼーション"],"date":"2026-08-22","bytes":17913,"origin":"user","feedbackOpen":0,"appPath":"../generated/2026-08-22-fog-clearing-breath-guide/index.html","feedbackPath":"../generated/2026-08-22-fog-clearing-breath-guide/feedback.md"},{"slug":"morphing-organic-hourglass","title":"触れるたびにくねる有機砂時計シミュレーター","tagline":"つつくと砂の落ち方まで変わる、不思議なデジタル砂時計","axis":"wonder","tags":["砂時計","有機変形","インタラクション"],"date":"2026-08-22","bytes":23431,"origin":"user","feedbackOpen":0,"appPath":"../generated/2026-08-22-morphing-organic-hourglass/index.html","feedbackPath":"../generated/2026-08-22-morphing-organic-hourglass/feedback.md"},{"slug":"number-perspective-converter","title":"数字を時間・距離・カロリーに変える体感換算機","tagline":"あなたの数字が、暮らしの単位で息を吹き返す","axis":"insight","tags":["単位換算","体感","数値変換"],"date":"2026-08-22","bytes":17615,"origin":"user","feedbackOpen":0,"appPath":"../generated/2026-08-22-number-perspective-converter/index.html","feedbackPath":"../generated/2026-08-22-number-perspective-converter/feedback.md"},{"slug":"over-dramatic-fortune","title":"運命が震える大げさおみくじ占い","tagline":"凶でも吉でも、あなたの明日は歴史的瞬間になる","axis":"laugh","tags":["占い","演出","ランダム"],"date":"2026-08-22","bytes":39987,"origin":"user","feedbackOpen":0,"appPath":"../generated/2026-08-22-over-dramatic-fortune/index.html","feedbackPath":"../generated/2026-08-22-over-dramatic-fortune/feedback.md"},{"slug":"paste-to-clean-table","title":"貼り付けた文章を整列する美表組み変換ツール","tagline":"乱雑な区切り文字を一発で整列表に","axis":"productivity","tags":["テキスト整形","表変換","コピー活用"],"date":"2026-08-22","bytes":20644,"origin":"user","feedbackOpen":0,"appPath":"../generated/2026-08-22-paste-to-clean-table/index.html","feedbackPath":"../generated/2026-08-22-paste-to-clean-table/feedback.md"}]</script>
+<script>
+(function(){
+  "use strict";
+  var APPS = JSON.parse(document.getElementById("apps-data").textContent);
+  var AXIS_LABELS = {"laugh":"笑わせる","lighten":"心を軽くする","productivity":"生産性","insight":"気づき","decide":"決める","wonder":"好奇心","duo":"ふたりで"};
+  var AXIS_COLORS = {"laugh":"#ffb347","lighten":"#7fd6a8","productivity":"#4da3ff","insight":"#c79bff","decide":"#ff8c66","wonder":"#5be0d6","duo":"#ff7fc3"};
+  var state = { q: "", axes: [], sort: "new" };
+  var REVIEW_KEY = "daf-review-v1";
+  var grid = document.getElementById("grid");
+  var modal = document.getElementById("modal");
+  var modalFrame = document.getElementById("modalFrame");
+  var modalTitle = document.getElementById("modalTitle");
+  var review = (function(){ try { return JSON.parse(localStorage.getItem(REVIEW_KEY) || "{}"); } catch(e){ return {}; } })();
+  function saveReview(){ try { localStorage.setItem(REVIEW_KEY, JSON.stringify(review)); } catch(e){} }
+  function esc(s){ return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
+  function fmtBytes(n){ return n >= 1024 ? (n/1024).toFixed(1) + "KB" : n + "B"; }
+  function renderChips(){
+    var html = "";
+    Object.keys(AXIS_LABELS).forEach(function(a){
+      var on = state.axes.indexOf(a) >= 0 ? " on" : "";
+      html += '<button class="chip' + on + '" data-axis="' + a + '" type="button">' + AXIS_LABELS[a] + '</button>';
+    });
+    document.getElementById("chips").innerHTML = html;
+    document.querySelectorAll("#chips .chip").forEach(function(c){
+      c.addEventListener("click", function(){
+        var a = c.getAttribute("data-axis");
+        var i = state.axes.indexOf(a);
+        if (i >= 0) state.axes.splice(i, 1); else state.axes.push(a);
+        renderChips(); render();
+      });
+    });
+  }
+  function filtered(){
+    var q = state.q.trim().toLowerCase();
+    return APPS.filter(function(a){
+      if (state.axes.length && state.axes.indexOf(a.axis) < 0) return false;
+      if (!q) return true;
+      var hay = (a.title + " " + a.tagline + " " + a.tags.join(" ") + " " + a.slug).toLowerCase();
+      return hay.indexOf(q) >= 0;
+    }).sort(function(x, y){
+      if (state.sort === "old") return x.date.localeCompare(y.date) || x.slug.localeCompare(y.slug);
+      if (state.sort === "size") return x.bytes - y.bytes;
+      if (state.sort === "name") return x.title.localeCompare(y.title, "ja");
+      return y.date.localeCompare(x.date) || x.slug.localeCompare(y.slug);
+    });
+  }
+  function cardHtml(a){
+    var color = AXIS_COLORS[a.axis] || "#999";
+    var done = review[a.slug] ? " done" : "";
+    var fb = a.feedbackOpen > 0 ? '<a class="fb-badge" href="' + esc(a.feedbackPath) + '" target="_blank" rel="noopener">意見 ' + a.feedbackOpen + '</a>' : "";
+    return '<article class="card">' +
+      '<div class="card-top"><span class="axis-badge" style="background:' + color + '">' + esc(AXIS_LABELS[a.axis] || a.axis) + '</span>' + fb + '</div>' +
+      '<h2>' + esc(a.title) + '</h2>' +
+      '<p class="tagline">' + esc(a.tagline) + '</p>' +
+      '<div class="tags">' + a.tags.map(function(t){ return '<span class="tag">' + esc(t) + '</span>'; }).join("") + '</div>' +
+      '<div class="meta"><span>' + esc(a.date) + '</span><span>' + fmtBytes(a.bytes) + '</span><span>' + (a.origin === "auto" ? "自動" : "ユーザー投稿") + '</span></div>' +
+      '<div class="card-actions">' +
+        '<button class="btn" data-preview="' + esc(a.appPath) + '" data-title="' + esc(a.title) + '" type="button">プレビュー</button>' +
+        '<a class="btn" href="' + esc(a.appPath) + '" target="_blank" rel="noopener">開く</a>' +
+        '<label class="review' + done + '"><input type="checkbox" data-review="' + esc(a.slug) + '"' + (done ? " checked" : "") + '>確認済み</label>' +
+      '</div></article>';
+  }
+  function render(){
+    var list = filtered();
+    grid.innerHTML = list.map(cardHtml).join("");
+    if (!list.length) grid.innerHTML = '<p class="empty">該当するアプリがありません。</p>';
+    grid.querySelectorAll("[data-preview]").forEach(function(b){
+      b.addEventListener("click", function(){
+        modalTitle.textContent = b.getAttribute("data-title");
+        modalFrame.src = b.getAttribute("data-preview");
+        modal.classList.add("open");
+      });
+    });
+    grid.querySelectorAll("[data-review]").forEach(function(c){
+      c.addEventListener("change", function(){
+        review[c.getAttribute("data-review")] = c.checked;
+        saveReview(); render();
+      });
+    });
+    var doneCount = APPS.filter(function(a){ return review[a.slug]; }).length;
+    var pct = APPS.length ? Math.round(doneCount / APPS.length * 100) : 0;
+    document.getElementById("progressFill").style.width = pct + "%";
+    document.getElementById("progressLabel").textContent = "確認済み: " + doneCount + " / " + APPS.length + "（" + pct + "%）";
+  }
+  document.getElementById("search").addEventListener("input", function(e){ state.q = e.target.value; render(); });
+  document.getElementById("sort").addEventListener("change", function(e){ state.sort = e.target.value; render(); });
+  document.getElementById("modalClose").addEventListener("click", function(){ modal.classList.remove("open"); modalFrame.src = "about:blank"; });
+  modal.addEventListener("click", function(e){ if (e.target === modal) { modal.classList.remove("open"); modalFrame.src = "about:blank"; } });
+  document.addEventListener("keydown", function(e){ if (e.key === "Escape") { modal.classList.remove("open"); modalFrame.src = "about:blank"; } });
+  renderChips(); render();
+})();
+</script>
+</body>
+</html>

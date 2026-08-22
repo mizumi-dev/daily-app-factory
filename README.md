@@ -26,6 +26,7 @@ npm run check   # リポジトリ健全性チェック（CI でも実行）
 npm run generate -- --brief "お題"            # Phase 0: アプリを1本生成
 npm run verify -- generated/.../index.html    # 生成アプリの静的検証
 npm run feedback -- list                      # アプリごとのフィードバック一覧
+npm run dashboard                             # ダッシュボードを再生成
 ```
 
 ## Phase 0: 手動 1 本パイプライン
@@ -51,6 +52,15 @@ npm run feedback -- list                      # アプリごとのフィード�
 npm run feedback -- add anger-bonfire-3min "3分は長い"          # 意見を追加
 npm run feedback -- list                                         # 全アプリの意見を一覧
 npm run feedback -- resolve anger-bonfire-3min 2                 # 対応済みにする（番号は list で確認）
+```
+
+## ダッシュボード
+
+生成アプリ全体をまとめた一覧ページを `dashboard/index.html` に生成する（検索・軸フィルタ・ソート・プレビュー・確認済みチェック付き）。
+リポジトリは GitHub Pages でも公開され、ブラウザだけで確認できる。
+
+```bash
+npm run dashboard   # 生成後は dashboard/index.html を開く
 ```
 
 ## GitHub 運用
