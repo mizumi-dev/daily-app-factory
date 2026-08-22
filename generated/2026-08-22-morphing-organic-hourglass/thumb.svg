@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="315" viewBox="0 0 600 315">
+  <rect width="600" height="315" fill="#0f0e17"/>
+  <rect width="600" height="315" fill="#5be0d6" opacity="0.28"/>
+  <circle cx="300" cy="180" r="105" fill="#5be0d6" opacity="0.16"/>
+  <text x="300" y="76" text-anchor="middle" font-family="Hiragino Sans, Yu Gothic, Meiryo, sans-serif" font-size="32" font-weight="bold" fill="#f2ede2">触れるたびにくねる有機砂時計</text><text x="300" y="118" text-anchor="middle" font-family="Hiragino Sans, Yu Gothic, Meiryo, sans-serif" font-size="32" font-weight="bold" fill="#f2ede2">シミュレーター</text>
+  <text x="300" y="238" text-anchor="middle" font-family="Hiragino Sans, Yu Gothic, Meiryo, sans-serif" font-size="16" fill="#b8b0a5">つつくと砂の落ち方まで変わる、不思議なデジタル砂</text>
+  <text x="300" y="285" text-anchor="middle" font-family="Hiragino Sans, Yu Gothic, Meiryo, sans-serif" font-size="12" fill="#6f675c">日刊アプリ工房</text>
+</svg>

@@ -29,6 +29,29 @@ npm run feedback -- list                      # アプリごとのフィード�
 npm run dashboard                             # ダッシュボードを再生成
 ```
 
+## Phase 1: ギャラリー（Worker + D1 + R2）
+
+ローカル開発（Cloudflare アカウント不要）:
+
+```bash
+npm run thumbs          # SVG サムネイル生成
+npm run seed:local      # generated/ のアプリをローカル D1/R2 に投入
+npm run dev:gallery     # http://127.0.0.1:8787 でギャラリーを起動
+```
+
+デプロイ（Cloudflare アカウントが必要）:
+
+```bash
+npx wrangler login
+npx wrangler d1 create daily-app-factory-db        # 発行された database_id を workers/gallery/wrangler.toml に設定
+npx wrangler r2 bucket create daily-app-factory-apps
+npx wrangler d1 migrations apply daily-app-factory-db --remote --config workers/gallery/wrangler.toml
+npm run seed                                       # 本番 D1/R2 に投入
+npm run deploy
+```
+
+ルーティング: `/`（ギャラリー SSR）・`/api/apps`（JSON）・`/app/:slug`（アプリ本体）・`/app/:slug/thumb.svg`・`/sitemap.xml`・`/feed.xml`。
+
 ## Phase 0: 手動 1 本パイプライン
 
 1. `.dev.vars.example` を `.dev.vars` にコピーし、DeepSeek API キーを記入する（`.dev.vars` はコミットされない）。

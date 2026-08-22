@@ -12,6 +12,14 @@
     "generate": "node scripts/generate.mjs",
     "verify": "node scripts/verify-app.mjs",
     "feedback": "node scripts/feedback.mjs",
-    "dashboard": "node scripts/dashboard.mjs"
+    "dashboard": "node scripts/dashboard.mjs",
+    "thumbs": "node scripts/make-thumbs.mjs",
+    "seed:local": "node scripts/seed.mjs --local",
+    "seed": "node scripts/seed.mjs",
+    "dev:gallery": "wrangler dev --local --config workers/gallery/wrangler.toml --port 8787",
+    "deploy": "wrangler deploy --config workers/gallery/wrangler.toml"
+  },
+  "devDependencies": {
+    "wrangler": "^4.125.0"
   }
 }
