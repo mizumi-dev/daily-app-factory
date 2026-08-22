@@ -1,0 +1,13 @@
+{
+  "name": "daily-app-factory",
+  "version": "0.1.0",
+  "private": true,
+  "description": "日刊アプリ工房 - DeepSeek V4 が毎日 1 本の単一 HTML アプリを生成・検証・公開する自律サービス",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "check": "node scripts/check.mjs"
+  }
+}

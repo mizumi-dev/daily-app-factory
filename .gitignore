@@ -1,0 +1,25 @@
+# dependencies
+node_modules/
+
+# Cloudflare / Wrangler
+.wrangler/
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+
+# environment
+.env
+.env.*
+!.env.example
+
+# logs & temp
+*.log
+tmp/
+.tmp/
+
+# Codex / agent local state
+.agents/
+
+# OS
+.DS_Store
+Thumbs.db
