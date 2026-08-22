@@ -1,0 +1,879 @@
+```html
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>今日のTODOを3つに絞る集中セレクター</title>
+<style>
+:root {
+  --bg: #f4f6f8;
+  --card-bg: #ffffff;
+  --card-border: #e2e8f0;
+  --text: #1a202c;
+  --text-secondary: #718096;
+  --accent: #0f766e;
+  --accent-hover: #0d5c56;
+  --accent-light: #ccfbf1;
+  --accent-contrast: #ffffff;
+  --danger: #e53e3e;
+  --danger-contrast: #ffffff;
+  --success: #38a169;
+  --success-contrast: #ffffff;
+  --toast-bg: #1a202c;
+  --toast-text: #f7fafc;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111827;
+    --card-bg: #1f2937;
+    --card-border: #374151;
+    --text: #e5e7eb;
+    --text-secondary: #9ca3af;
+    --accent: #2dd4bf;
+    --accent-hover: #5eead4;
+    --accent-light: #134e4a;
+    --accent-contrast: #0f172a;
+    --danger: #fc8181;
+    --danger-contrast: #1a202c;
+    --success: #68d391;
+    --success-contrast: #0f172a;
+    --toast-bg: #e5e7eb;
+    --toast-text: #111827;
+    --shadow: 0 1px 4px rgba(0,0,0,0.4);
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", "Meiryo", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+
+.app {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 32px 16px 48px;
+}
+
+.app-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+.app-header h1 {
+  font-size: 1.45em;
+  margin: 0 0 6px;
+  letter-spacing: 0.04em;
+}
+.tagline {
+  color: var(--text-secondary);
+  font-size: 0.92em;
+  margin: 0;
+}
+
+.input-section {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: var(--shadow);
+}
+.input-label {
+  display: block;
+  font-size: 0.85em;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: var(--text-secondary);
+}
+.todo-input {
+  width: 100%;
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 1em;
+  font-family: inherit;
+  background: var(--bg);
+  color: var(--text);
+  resize: vertical;
+  min-height: 90px;
+  line-height: 1.6;
+}
+.todo-input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-color: transparent;
+}
+.input-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.input-hint {
+  font-size: 0.75em;
+  color: var(--text-secondary);
+  margin-top: 8px;
+  width: 100%;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 16px;
+  border-radius: 9px;
+  border: 1px solid transparent;
+  font-size: 0.9em;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  line-height: 1.4;
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.1s ease, color 0.15s ease;
+}
+.btn:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+.btn:active { transform: scale(0.97); }
+.btn-primary {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-primary.active { background: var(--danger); color: var(--danger-contrast); }
+.btn-primary.active:hover { background: var(--danger); opacity: 0.92; }
+.btn-secondary {
+  background: var(--card-bg);
+  border-color: var(--card-border);
+  color: var(--text);
+}
+.btn-secondary:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-light);
+}
+
+.action-bar {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+.action-bar .btn { flex: 1; min-width: 0; }
+@media (max-width: 480px) {
+  .action-bar { flex-direction: column; }
+}
+
+.selection-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-top: 20px;
+  font-weight: 700;
+  font-size: 0.93em;
+  box-shadow: var(--shadow);
+}
+.banner-btn {
+  background: rgba(255,255,255,0.2);
+  color: inherit;
+  border: 1px solid rgba(255,255,255,0.5);
+  border-radius: 7px;
+  padding: 4px 14px;
+  font-size: 0.8em;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.banner-btn:hover { background: rgba(255,255,255,0.35); }
+.banner-btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+.list-section { margin-top: 28px; }
+.list-section h2 {
+  font-size: 0.95em;
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin: 0 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--card-border);
+  padding-bottom: 8px;
+  letter-spacing: 0.02em;
+}
+.count {
+  font-size: 0.8em;
+  background: var(--bg);
+  border: 1px solid var(--card-border);
+  border-radius: 999px;
+  padding: 1px 10px;
+  color: var(--text);
+  font-weight: 600;
+}
+.count.full {
+  background: var(--success);
+  border-color: var(--success);
+  color: var(--success-contrast);
+}
+.card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.todo-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 10px 14px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, background-color 0.15s ease, opacity 0.15s ease;
+}
+.todo-card.is-today {
+  padding: 16px 18px;
+  font-size: 1.05em;
+  font-weight: 600;
+  border: 2px solid var(--accent);
+  background: var(--accent-light);
+  box-shadow: 0 2px 12px rgba(15, 118, 110, 0.08);
+}
+.todo-card.is-tomorrow {
+  opacity: 0.65;
+  font-size: 0.9em;
+}
+.todo-text {
+  flex: 1;
+  word-break: break-word;
+  min-width: 0;
+}
+
+.selection-mode .todo-card { cursor: pointer; }
+.selection-mode .todo-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.1);
+  border-color: var(--accent);
+}
+.selection-mode .todo-card.is-tomorrow { opacity: 1; }
+.selection-mode .todo-card:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+.selection-mode .todo-card.is-today:focus-visible {
+  outline: 3px solid var(--danger);
+  outline-offset: 2px;
+}
+
+.today-badge {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border-radius: 999px;
+  padding: 2px 12px;
+  font-size: 0.72em;
+  font-weight: 700;
+  flex-shrink: 0;
+  letter-spacing: 0.05em;
+}
+.select-indicator {
+  font-size: 0.75em;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  font-weight: 600;
+}
+.is-today .select-indicator { color: var(--accent); }
+
+.delete-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1.2em;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 6px;
+  line-height: 1.3;
+  flex-shrink: 0;
+  font-family: inherit;
+}
+.delete-btn:hover {
+  color: var(--danger);
+  background: rgba(229,62,62,0.12);
+}
+.delete-btn:focus-visible {
+  outline: 2px solid var(--danger);
+  outline-offset: 1px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 48px 16px;
+  color: var(--text-secondary);
+}
+.empty-state svg {
+  width: 56px;
+  height: 56px;
+  margin-bottom: 12px;
+  opacity: 0.6;
+}
+.empty-state p { margin: 0; font-size: 0.95em; }
+
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--toast-bg);
+  color: var(--toast-text);
+  padding: 10px 22px;
+  border-radius: 999px;
+  font-size: 0.88em;
+  font-weight: 600;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+  z-index: 100;
+  max-width: 92vw;
+  text-align: center;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.25);
+}
+.toast.show { opacity: 1; }
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 20px;
+}
+.modal-content {
+  background: var(--card-bg);
+  color: var(--text);
+  border-radius: 14px;
+  padding: 24px;
+  max-width: 480px;
+  width: 100%;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+  max-height: 80vh;
+  overflow: auto;
+}
+.modal-content h3 { margin: 0 0 8px; font-size: 1.1em; }
+.modal-content p { margin: 0 0 12px; color: var(--text-secondary); font-size: 0.9em; }
+.modal-content pre {
+  background: var(--bg);
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  padding: 14px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.9em;
+  max-height: 200px;
+  overflow: auto;
+  margin: 0;
+  font-family: inherit;
+}
+.modal-actions { text-align: right; margin-top: 16px; }
+
+.app-footer {
+  margin-top: 44px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.8em;
+  border-top: 1px solid var(--card-border);
+  padding-top: 16px;
+}
+.app-footer p { margin: 4px 0; }
+
+.hidden { display: none !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+  .todo-card:hover { transform: none !important; }
+}
+</style>
+</head>
+<body>
+<main class="app" id="app">
+  <header class="app-header">
+    <h1>今日のTODOを3つに絞る集中セレクター</h1>
+    <p class="tagline">やることを減らして、今日を終わらせる。3つだけ選ぶTODO整理</p>
+  </header>
+
+  <section class="input-section" aria-label="TODO入力">
+    <label class="input-label" for="todo-input">TODOを入力（1行に1つ）</label>
+    <textarea class="todo-input" id="todo-input" rows="4" placeholder="例:&#10;企画書の下書きを書く&#10;メールの返信をまとめる&#10;資料の最終チェック"></textarea>
+    <div class="input-actions">
+      <button type="button" class="btn btn-primary" id="add-btn">追加する</button>
+      <button type="button" class="btn btn-secondary" id="sample-btn">サンプルを読み込む</button>
+      <button type="button" class="btn btn-secondary" id="clear-btn">すべて消す</button>
+    </div>
+    <p class="input-hint">Ctrl+Enter でも追加できます</p>
+  </section>
+
+  <section class="action-bar" aria-label="操作">
+    <button type="button" class="btn btn-primary" id="select-btn">今日の3つを選ぶ</button>
+    <button type="button" class="btn btn-secondary" id="copy-btn">結果をコピー</button>
+  </section>
+
+  <div class="selection-banner hidden" id="selection-banner" role="status" aria-live="polite">
+    <span id="selection-msg"></span>
+    <button type="button" class="banner-btn" id="cancel-select-btn">終了</button>
+  </div>
+
+  <div class="empty-state" id="empty-state">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10"/>
+      <path d="M8 12.5l2.5 2.5L16 9.5"/>
+    </svg>
+    <p>TODOを追加すると、<br>今日の3つを選べるようになります。</p>
+  </div>
+
+  <section class="list-section hidden" id="today-section" aria-label="今日の3つ">
+    <h2>今日の3つ <span class="count" id="today-count">0/3</span></h2>
+    <div class="card-list" id="today-list"></div>
+  </section>
+
+  <section class="list-section hidden" id="tomorrow-section" aria-label="明日候補">
+    <h2>明日候補 <span class="count" id="tomorrow-count">0</span></h2>
+    <div class="card-list" id="tomorrow-list"></div>
+  </section>
+
+  <footer class="app-footer">
+    <p>生成日: 2026-08-22</p>
+    <p>お題の出所: ユーザー投稿</p>
+  </footer>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<div class="modal hidden" id="copy-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal-content">
+    <h3 id="modal-title">コピーできませんでした</h3>
+    <p>以下のテキストを手動でコピーしてください。</p>
+    <pre id="copy-modal-text"></pre>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-primary" id="modal-close-btn">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+  try {
+    const STORAGE_KEY = 'daily3TodoFocus';
+    const MAX_TODAY = 3;
+    const state = {
+      todos: [],
+      selectionMode: false
+    };
+    let toastTimer = null;
+    let lastFocusedBeforeModal = null;
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        const data = JSON.parse(raw);
+        if (data && Array.isArray(data.todos)) {
+          state.todos = data.todos.filter(function(t) {
+            return t && typeof t.text === 'string' && typeof t.id === 'string';
+          });
+          state.todos.forEach(function(t) {
+            t.isToday = !!t.isToday;
+          });
+        }
+        state.selectionMode = !!(data && data.selectionMode);
+      } catch (e) {
+        state.todos = [];
+        state.selectionMode = false;
+      }
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (e) { /* localStorage unavailable */ }
+    }
+
+    function genId() {
+      return Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+    }
+
+    function showToast(message) {
+      const el = document.getElementById('toast');
+      if (!el) return;
+      el.textContent = message;
+      el.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(function() {
+        el.classList.remove('show');
+      }, 2400);
+    }
+
+    function getTodayTodos() {
+      return state.todos.filter(function(t) { return t.isToday; });
+    }
+
+    function getTomorrowTodos() {
+      return state.todos.filter(function(t) { return !t.isToday; });
+    }
+
+    function addTodos() {
+      const textarea = document.getElementById('todo-input');
+      const text = textarea.value.trim();
+      if (!text) {
+        showToast('TODOを入力してください');
+        textarea.focus();
+        return;
+      }
+      const lines = text.split('\n').map(function(s) { return s.trim(); }).filter(function(s) { return s.length > 0; });
+      if (lines.length === 0) return;
+      const existing = new Set(state.todos.map(function(t) { return t.text; }));
+      let added = 0;
+      lines.forEach(function(line) {
+        if (existing.has(line)) return;
+        state.todos.push({ id: genId(), text: line, isToday: false });
+        existing.add(line);
+        added++;
+      });
+      textarea.value = '';
+      if (added === 0) {
+        showToast('同じTODOは追加済みです');
+      } else {
+        saveState();
+        render();
+        showToast(added + '件のTODOを追加しました');
+      }
+    }
+
+    function loadSamples() {
+      const samples = [
+        '企画書の下書きを書く',
+        'メールの返信をまとめて処理する',
+        '資料の最終チェックをする',
+        '1on1のふりかえりをまとめる',
+        '今週のタスク棚おろしをする',
+        'デスク周りを整理する'
+      ];
+      const existing = new Set(state.todos.map(function(t) { return t.text; }));
+      let added = 0;
+      samples.forEach(function(sample) {
+        if (existing.has(sample)) return;
+        state.todos.push({ id: genId(), text: sample, isToday: false });
+        existing.add(sample);
+        added++;
+      });
+      saveState();
+      render();
+      showToast(added > 0 ? 'サンプルを' + added + '件追加しました' : '追加できるサンプルはありません');
+    }
+
+    function clearAll() {
+      if (state.todos.length === 0) {
+        showToast('TODOがありません');
+        return;
+      }
+      let ok = false;
+      try { ok = window.confirm('すべてのTODOを削除しますか？'); } catch (e) { ok = true; }
+      if (!ok) return;
+      state.todos = [];
+      state.selectionMode = false;
+      saveState();
+      render();
+      showToast('すべてのTODOを削除しました');
+    }
+
+    function toggleSelectionMode() {
+      if (state.todos.length === 0) {
+        showToast('先にTODOを追加してください');
+        return;
+      }
+      state.selectionMode = !state.selectionMode;
+      saveState();
+      render();
+      if (state.selectionMode) {
+        showToast('選択モードに入りました。TODOを選んでください');
+      } else {
+        showToast('選択モードを終了しました');
+      }
+    }
+
+    function toggleTodo(id) {
+      if (!state.selectionMode) return;
+      const todo = state.todos.find(function(t) { return t.id === id; });
+      if (!todo) return;
+
+      if (todo.isToday) {
+        todo.isToday = false;
+        saveState();
+        render();
+        showToast('「' + todo.text + '」を明日候補に戻しました');
+      } else {
+        const todayCount = getTodayTodos().length;
+        if (todayCount >= MAX_TODAY) {
+          showToast('3つはすでに決定済み。選ばれているカードをクリックして1つ外してください');
+          return;
+        }
+        todo.isToday = true;
+        const newCount = todayCount + 1;
+        if (newCount >= MAX_TODAY) {
+          state.selectionMode = false;
+        }
+        saveState();
+        render();
+        if (newCount >= MAX_TODAY) {
+          showToast('今日の3つが決まりました！');
+        } else {
+          showToast('「' + todo.text + '」を選択（あと' + (MAX_TODAY - newCount) + 'つ）');
+        }
+      }
+    }
+
+    function deleteTodo(id) {
+      if (state.selectionMode) return;
+      const todo = state.todos.find(function(t) { return t.id === id; });
+      if (!todo) return;
+      state.todos = state.todos.filter(function(t) { return t.id !== id; });
+      saveState();
+      render();
+      showToast('「' + todo.text + '」を削除しました');
+    }
+
+    function copyText(text) {
+      return new Promise(function(resolve, reject) {
+        if (navigator.clipboard && window.isSecureContext) {
+          navigator.clipboard.writeText(text).then(resolve, function() {
+            fallbackCopy(text, resolve, reject);
+          });
+        } else {
+          fallbackCopy(text, resolve, reject);
+        }
+      });
+    }
+
+    function fallbackCopy(text, resolve, reject) {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        ta.style.top = '0';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        if (ok) resolve(); else reject();
+      } catch (e) {
+        reject();
+      }
+    }
+
+    function copyResult() {
+      const todayTodos = getTodayTodos();
+      if (todayTodos.length === 0) {
+        showToast('まだ今日のTODOが選ばれていません');
+        return;
+      }
+      const lines = todayTodos.map(function(t, i) {
+        return (i + 1) + '. ' + t.text;
+      });
+      const text = '【今日の3つ】\n' + lines.join('\n');
+
+      copyText(text).then(function() {
+        showToast('今日の3つをコピーしました');
+      }, function() {
+        const modal = document.getElementById('copy-modal');
+        const pre = document.getElementById('copy-modal-text');
+        pre.textContent = text;
+        lastFocusedBeforeModal = document.activeElement;
+        modal.classList.remove('hidden');
+        document.getElementById('modal-close-btn').focus();
+      });
+    }
+
+    function closeModal() {
+      const modal = document.getElementById('copy-modal');
+      if (modal.classList.contains('hidden')) return;
+      modal.classList.add('hidden');
+      if (lastFocusedBeforeModal && lastFocusedBeforeModal.focus) {
+        lastFocusedBeforeModal.focus();
+      }
+    }
+
+    function createCard(todo) {
+      const card = document.createElement('div');
+      card.className = 'todo-card ' + (todo.isToday ? 'is-today' : 'is-tomorrow');
+      card.dataset.id = todo.id;
+      card.tabIndex = 0;
+      card.setAttribute('role', 'button');
+      const actionText = todo.isToday ? '外す' : '選ぶ';
+      card.setAttribute('aria-label', (todo.isToday ? '今日のTODO' : '明日候補') + '：' + todo.text + (state.selectionMode ? '。クリックまたはEnterで' + actionText : ''));
+
+      const textSpan = document.createElement('span');
+      textSpan.className = 'todo-text';
+      textSpan.textContent = todo.text;
+      card.appendChild(textSpan);
+
+      if (state.selectionMode) {
+        const indicator = document.createElement('span');
+        indicator.className = 'select-indicator';
+        indicator.textContent = todo.isToday ? '✓ 選択中' : 'クリックで選ぶ';
+        card.appendChild(indicator);
+      } else if (todo.isToday) {
+        const badge = document.createElement('span');
+        badge.className = 'today-badge';
+        badge.textContent = '今日';
+        card.appendChild(badge);
+      } else {
+        const deleteBtn = document.createElement('button');
+        deleteBtn.type = 'button';
+        deleteBtn.className = 'delete-btn';
+        deleteBtn.textContent = '×';
+        deleteBtn.setAttribute('aria-label', '「' + todo.text + '」を削除');
+        deleteBtn.title = '削除';
+        deleteBtn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          deleteTodo(todo.id);
+        });
+        card.appendChild(deleteBtn);
+      }
+
+      card.addEventListener('click', function() {
+        if (state.selectionMode) {
+          toggleTodo(todo.id);
+        }
+      });
+
+      card.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          if (state.selectionMode) {
+            toggleTodo(todo.id);
+          }
+        }
+      });
+
+      return card;
+    }
+
+    function render() {
+      const app = document.getElementById('app');
+      const todayList = document.getElementById('today-list');
+      const tomorrowList = document.getElementById('tomorrow-list');
+      const todayCountEl = document.getElementById('today-count');
+      const tomorrowCountEl = document.getElementById('tomorrow-count');
+      const todaySection = document.getElementById('today-section');
+      const tomorrowSection = document.getElementById('tomorrow-section');
+      const emptyState = document.getElementById('empty-state');
+      const selectBtn = document.getElementById('select-btn');
+      const selectionBanner = document.getElementById('selection-banner');
+      const selectionMsg = document.getElementById('selection-msg');
+
+      const todayTodos = getTodayTodos();
+      const tomorrowTodos = getTomorrowTodos();
+      const hasTodos = state.todos.length > 0;
+
+      app.classList.toggle('selection-mode', state.selectionMode);
+
+      todayCountEl.textContent = todayTodos.length + '/' + MAX_TODAY;
+      todayCountEl.classList.toggle('full', todayTodos.length >= MAX_TODAY);
+      tomorrowCountEl.textContent = tomorrowTodos.length;
+
+      if (state.selectionMode) {
+        selectionBanner.classList.remove('hidden');
+        const remaining = Math.max(0, MAX_TODAY - todayTodos.length);
+        selectionMsg.textContent = todayTodos.length >= MAX_TODAY
+          ? '3つ選択済み。外してから選び直せます'
+          : 'TODOをクリックで選択（あと' + remaining + 'つ選べます）';
+        selectBtn.textContent = '選択をやめる';
+        selectBtn.classList.add('active');
+      } else {
+        selectionBanner.classList.add('hidden');
+        selectBtn.textContent = todayTodos.length >= MAX_TODAY ? '選び直す' : '今日の3つを選ぶ';
+        selectBtn.classList.remove('active');
+      }
+
+      emptyState.classList.toggle('hidden', hasTodos);
+      todaySection.classList.toggle('hidden', !hasTodos);
+      tomorrowSection.classList.toggle('hidden', !hasTodos);
+
+      todayList.innerHTML = '';
+      todayTodos.forEach(function(todo) {
+        todayList.appendChild(createCard(todo));
+      });
+
+      tomorrowList.innerHTML = '';
+      tomorrowTodos.forEach(function(todo) {
+        tomorrowList.appendChild(createCard(todo));
+      });
+    }
+
+    function init() {
+      loadState();
+      render();
+
+      document.getElementById('add-btn').addEventListener('click', addTodos);
+      document.getElementById('sample-btn').addEventListener('click', loadSamples);
+      document.getElementById('clear-btn').addEventListener('click', clearAll);
+      document.getElementById('select-btn').addEventListener('click', toggleSelectionMode);
+      document.getElementById('copy-btn').addEventListener('click', copyResult);
+      document.getElementById('cancel-select-btn').addEventListener('click', function() {
+        state.selectionMode = false;
+        saveState();
+        render();
+        showToast('選択モードを終了しました');
+      });
+      document.getElementById('modal-close-btn').addEventListener('click', closeModal);
+
+      const textarea = document.getElementById('todo-input');
+      textarea.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+          e.preventDefault();
+          addTodos();
+        }
+      });
+
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          closeModal();
+        }
+      });
+
+      document.getElementById('copy-modal').addEventListener('click', function(e) {
+        if (e.target === this) closeModal();
+      });
+    }
+
+    init();
+  } catch (err) {
+    var errorBox = document.createElement('div');
+    errorBox.style.cssText = 'margin:20px;padding:20px;border:2px solid #e53e3e;border-radius:8px;background:#fff5f5;color:#c53030;font-family:sans-serif;';
+    errorBox.textContent = 'アプリの起動中にエラーが発生しました: ' + err.message;
+    document.body.appendChild(errorBox);
+  }
+})();
+</script>
+</body>
+</html>
