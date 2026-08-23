@@ -211,6 +211,22 @@ const SCRIPT = `<script>
   modal.addEventListener("click", function(e){ if (e.target === modal) { modal.classList.remove("open"); modalFrame.src = "about:blank"; } });
   document.addEventListener("keydown", function(e){ if (e.key === "Escape") { modal.classList.remove("open"); modalFrame.src = "about:blank"; } });
   renderChips(); render();
+  var LIVE_API = "https://daily-app-factory.daily-app-factory.workers.dev/api/apps";
+  function toLive(a){
+    return {
+      slug: a.slug, title: a.title, tagline: a.tagline || "", axis: a.axis || "",
+      tags: a.tags || [], date: (a.published_at || "").slice(0, 10), bytes: a.bytes || 0,
+      origin: a.origin || "auto", feedbackOpen: 0,
+      appPath: LIVE_API.replace("/api/apps", "/app/") + a.slug,
+      feedbackPath: ""
+    };
+  }
+  fetch(LIVE_API).then(function(r){ return r.json(); }).then(function(d){
+    if (d && Array.isArray(d.apps) && d.apps.length) {
+      APPS = d.apps.map(toLive);
+      renderChips(); render();
+    }
+  }).catch(function(){});
 })();
 </script>`;
 

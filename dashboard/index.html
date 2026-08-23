@@ -31,7 +31,7 @@ select.sort{background:var(--bg-soft);border:1.5px solid var(--border);border-ra
 <main>
   <header>
     <h1>日刊アプリ工房 ダッシュボード</h1>
-    <p class="sub">生成アプリ一覧（最終更新: 2026/08/22 17:17）</p>
+    <p class="sub">生成アプリ一覧（最終更新: 2026/08/23 13:59）</p>
     <div class="progress-wrap">
       <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
       <p class="progress-label" id="progressLabel"></p>
@@ -150,6 +150,22 @@ select.sort{background:var(--bg-soft);border:1.5px solid var(--border);border-ra
   modal.addEventListener("click", function(e){ if (e.target === modal) { modal.classList.remove("open"); modalFrame.src = "about:blank"; } });
   document.addEventListener("keydown", function(e){ if (e.key === "Escape") { modal.classList.remove("open"); modalFrame.src = "about:blank"; } });
   renderChips(); render();
+  var LIVE_API = "https://daily-app-factory.daily-app-factory.workers.dev/api/apps";
+  function toLive(a){
+    return {
+      slug: a.slug, title: a.title, tagline: a.tagline || "", axis: a.axis || "",
+      tags: a.tags || [], date: (a.published_at || "").slice(0, 10), bytes: a.bytes || 0,
+      origin: a.origin || "auto", feedbackOpen: 0,
+      appPath: LIVE_API.replace("/api/apps", "/app/") + a.slug,
+      feedbackPath: ""
+    };
+  }
+  fetch(LIVE_API).then(function(r){ return r.json(); }).then(function(d){
+    if (d && Array.isArray(d.apps) && d.apps.length) {
+      APPS = d.apps.map(toLive);
+      renderChips(); render();
+    }
+  }).catch(function(){});
 })();
 </script>
 </body>

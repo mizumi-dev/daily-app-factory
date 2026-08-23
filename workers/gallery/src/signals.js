@@ -68,7 +68,7 @@ export async function collectSignals(env, ctx) {
   if (!items.length) return { collected: 0 };
   const system = `あなたは市場調査担当。「〜がない」「〜が見つからない」「〜できたらいいのに」「誰か作って」「毎回〜するのが面倒」のような欲求シグナルをテキスト群から抽出してください。
 出力は JSON 配列のみ。各要素: {"source": "hn|reddit|trends|zenn", "url": "...", "excerpt": "根拠テキスト（短く）", "need": "欲求の要約（日本語、1文）", "score": 0.0〜1.0}
-該当なしなら []。`;
+該当なしでも、最も「誰かが困っていそう・作りたそう」なものを最大10件は抽出して返すこと。score は確信度。`;
   const user = items
     .map((i) => `[${i.source}] ${i.excerpt.slice(0, 200)} (${i.url})`)
     .join("\n")
@@ -91,6 +91,25 @@ export async function collectSignals(env, ctx) {
       )
       .run();
     inserted++;
+  }
+  // 抽出が空だった場合は、生テキストを低スコアのシグナルとしてフォールバック保存する
+  // （パイプラインの自動モードが常に材料を持てるようにするため）
+  if (inserted === 0 && items.length) {
+    for (const item of items.slice(0, 8)) {
+      await env.DB.prepare(
+        "INSERT INTO signals (source,url,excerpt,need,score,collected_at) VALUES (?,?,?,?,?,?)"
+      )
+        .bind(
+          String(item.source).slice(0, 20),
+          String(item.url).slice(0, 500),
+          String(item.excerpt).slice(0, 1000),
+          String(item.excerpt).slice(0, 200),
+          0.3,
+          now
+        )
+        .run();
+      inserted++;
+    }
   }
   return { collected: inserted, candidates: items.length };
 }
