@@ -3,6 +3,7 @@ node_modules/
 
 # Cloudflare / Wrangler
 .wrangler/
+.wrangler-dist/
 .dev.vars
 .dev.vars.*
 !.dev.vars.example
