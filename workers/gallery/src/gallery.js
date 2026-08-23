@@ -48,7 +48,7 @@ function card(app) {
   </article>`;
 }
 
-export function renderGallery({ apps, total, page, perPage, params, facets, siteKey }) {
+export function renderGallery({ apps, total, page, perPage, params, facets, siteKey, style }) {
   const qs = buildQuery(params);
   const totalPages = Math.max(1, Math.ceil(total / perPage));
   const axisKeys = Object.keys(AXIS_LABELS);
@@ -134,6 +134,7 @@ h2{font-size:1.02rem;line-height:1.4}h2 a{color:inherit;text-decoration:none}h2 
 .pager a{color:var(--accent);text-decoration:none;border:1px solid var(--border);border-radius:999px;padding:7px 18px}
 .clear{display:inline-block;margin-bottom:8px;font-size:0.8rem;color:var(--accent)}
 .brief-box{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:16px 18px;margin-bottom:16px}
+.style-badge{display:inline-block;margin-top:8px;font-size:0.72rem;color:var(--text-soft);border:1px solid var(--border);border-radius:999px;padding:3px 12px}
 .brief-box h2{font-size:1rem;margin-bottom:2px}
 .brief-box .sub{color:var(--text-soft);font-size:0.8rem;margin-bottom:10px}
 #briefForm{display:flex;flex-direction:column;gap:10px}
@@ -154,6 +155,7 @@ footer{margin-top:30px;text-align:center;font-size:0.75rem;color:var(--text-soft
   <header>
     <h1>日刊アプリ工房</h1>
     <p class="sub">AI が毎日 1 本作る、動く単一 HTML アプリのギャラリー（全 ${total} 本）</p>
+    <span class="style-badge">ハウススタイル: ${esc(style || "v2")}</span>
   </header>
   <section class="brief-box">
     <h2>お題を投げる</h2>
