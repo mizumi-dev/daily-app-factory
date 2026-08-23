@@ -661,12 +661,8 @@ export async function runPipeline(env, ctx, opts = {}) {
   if (themeResult.text) directive.text = themeResult.text;
   const themeLog = themeResult.log || {};
   const catalog = await loadCatalog(env);
-  // 基本は v2。v1 / v3 は明示指定時のみ（opts.style / HOUSE_STYLE_VERSION で指定）
-  const style = STYLE_VERSIONS.includes(opts.style)
-    ? opts.style
-    : STYLE_VERSIONS.includes(env.HOUSE_STYLE_VERSION)
-      ? env.HOUSE_STYLE_VERSION
-      : "v2";
+  // 基本は v2。優先順位: 実行時指定(opts.style) → ダッシュボード設定(KV) → env → v2
+  const style = STYLE_VERSIONS.includes(opts.style) ? opts.style : await currentHouseStyle(env);
 
   // 5) 企画会議（提案 → 相互レビュー → 修正案 → 審査。最大3ラウンド）
   let spec = null;
@@ -844,7 +840,17 @@ export async function statusReport(env) {
     lastRuns,
     signals: Number(signalCount?.c || 0),
     lastCollect,
+    style: await currentHouseStyle(env),
   };
+}
+
+export async function currentHouseStyle(env) {
+  const kvs = await env.CACHE.get("houseStyle:default");
+  return STYLE_VERSIONS.includes(kvs)
+    ? kvs
+    : STYLE_VERSIONS.includes(env.HOUSE_STYLE_VERSION)
+      ? env.HOUSE_STYLE_VERSION
+      : "v2";
 }
 
 // テスト/検証用に企画会議の各ステージを公開する

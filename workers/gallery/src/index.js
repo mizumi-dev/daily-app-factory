@@ -1,7 +1,7 @@
 // 日刊アプリ工房 ギャラリー Worker
 import { listApps, getApp, facets, sortKeys } from "./store.js";
 import { renderGallery } from "./gallery.js";
-import { runPipeline, statusReport } from "./pipeline.js";
+import { runPipeline, statusReport, currentHouseStyle } from "./pipeline.js";
 import { collectSignals } from "./signals.js";
 import { submitBrief, briefPage } from "./briefs.js";
 
@@ -26,6 +26,13 @@ export default {
           });
           return json(result);
         });
+        if (pathname === "/_style") return admin(env, request, async () => {
+          const body = await request.json().catch(() => ({}));
+          const style = ["v1", "v2", "v3"].includes(body.style) ? body.style : null;
+          if (!style) return json({ error: "style は v1 / v2 / v3 のいずれかです" }, 400);
+          await env.CACHE.put("houseStyle:default", style, { expirationTtl: 86400 * 365 });
+          return json({ style });
+        });
         if (pathname === "/_collect") return admin(env, request, async () => {
           const result = await collectSignals(env, null);
           return json(result);
@@ -46,6 +53,9 @@ export default {
         return json(await statusReport(env));
       }
       if (pathname === "/" || pathname === "/index.html") return galleryPage(request, env, url);
+      if (pathname === "/api/config") {
+        return json({ style: await currentHouseStyle(env) });
+      }
       if (pathname === "/api/apps") return appsJson(request, env, url);
       const minutesMatch = pathname.match(/^\/app\/([a-z0-9-]+)\/minutes\.md$/);
       if (minutesMatch) return minutesRoute(env, minutesMatch[1]);
@@ -114,6 +124,7 @@ function parseParams(url) {
 async function galleryPage(request, env, url) {
   const params = parseParams(url);
   const perPage = 12;
+  const style = await currentHouseStyle(env);
   const result = await listApps(env, {
     q: params.q,
     axis: params.axis,
@@ -132,6 +143,7 @@ async function galleryPage(request, env, url) {
     params,
     facets: f,
     siteKey: env.TURNSTILE_SITE_KEY || "1x00000000000000000000AA",
+    style,
   });
   return new Response(html, { headers: htmlHeaders() });
 }
@@ -151,8 +163,9 @@ async function appsJson(request, env, url) {
   return json({ ...result, facets: f });
 }
 
-function json(data) {
+function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
+    status,
     headers: {
       "Content-Type": "application/json; charset=utf-8",
       "Cache-Control": "public, max-age=60",

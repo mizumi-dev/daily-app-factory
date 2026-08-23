@@ -88,6 +88,7 @@ select.sort{background:var(--bg-soft);border:1.5px solid var(--border);border-ra
 .fb-badge{font-size:0.72rem;background:rgba(255,140,66,0.16);color:#ffb27a;border:1px solid rgba(255,140,66,0.4);border-radius:999px;padding:2px 9px;text-decoration:none}
 .empty{text-align:center;color:var(--text-soft);padding:48px 0}footer{margin-top:28px;text-align:center;font-size:0.75rem;color:var(--text-soft);opacity:0.7}
 .pager{display:flex;justify-content:center;align-items:center;gap:12px;margin-top:18px}.pager button{border:1px solid var(--border);background:var(--panel);color:var(--text);border-radius:999px;padding:7px 18px;font-size:0.85rem;cursor:pointer;font-family:inherit}.pager button:hover{border-color:var(--accent);color:var(--accent)}.pager-info{font-size:0.8rem;color:var(--text-soft)}
+.style-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;width:100%;border-top:1px solid var(--border);padding-top:10px;margin-top:4px}.style-badge{font-size:0.8rem;color:var(--text-soft)}.style-badge b{color:var(--accent)}.style-select{background:var(--bg-soft);border:1.5px solid var(--border);border-radius:10px;padding:6px 10px;font-size:0.82rem;color:var(--text);font-family:inherit;outline:none}.style-msg{font-size:0.78rem;color:var(--text-soft)}
 .modal{position:fixed;inset:0;background:rgba(0,0,0,0.72);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}.modal.open{display:flex}
 .modal-box{width:min(880px,100%);height:min(760px,90vh);background:var(--bg);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;border:1px solid var(--border)}
 .modal-head{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-soft)}.modal-title{font-size:0.9rem;font-weight:600}.modal-close{border:1px solid var(--border);background:transparent;color:var(--text);border-radius:999px;padding:5px 14px;cursor:pointer;font-family:inherit}
@@ -111,6 +112,15 @@ const BODY = `<main>
       <option value="size">サイズ順</option>
       <option value="name">名前順</option>
     </select>
+    <div class="style-row">
+      <span class="style-badge">ハウススタイル: <b id="styleNow">--</b></span>
+      <select id="styleSelect" class="style-select" aria-label="ハウススタイル規約の切替">
+        <option value="v1">v1（基本）</option>
+        <option value="v2">v2（緩め・既定）</option>
+        <option value="v3">v3（厳しめ）</option>
+      </select>
+      <span class="style-msg" id="styleMsg" role="status"></span>
+    </div>
   </section>
   <section class="grid" id="grid"></section>
   <nav class="pager" id="pager" aria-label="ページ送り"></nav>
@@ -234,6 +244,40 @@ const SCRIPT = `<script>
   }
   document.getElementById("search").addEventListener("input", function(e){ state.q = e.target.value; state.page = 1; render(); });
   document.getElementById("sort").addEventListener("change", function(e){ state.sort = e.target.value; state.page = 1; render(); });
+  var STYLE_API = "https://daily-app-factory.daily-app-factory.workers.dev";
+  var styleNow = document.getElementById("styleNow");
+  var styleSelect = document.getElementById("styleSelect");
+  var styleMsg = document.getElementById("styleMsg");
+  function setStyle(s){
+    styleNow.textContent = s || "--";
+    styleSelect.value = s || "v2";
+  }
+  fetch(STYLE_API + "/api/config").then(function(r){ return r.json(); }).then(function(c){
+    if (c && c.style) setStyle(c.style);
+  }).catch(function(){});
+  styleSelect.addEventListener("change", function(){
+    var token = "";
+    try { token = localStorage.getItem("daf-admin-token") || ""; } catch(e){}
+    if (!token) {
+      token = window.prompt("規約を変更するには管理トークン（ADMIN_TOKEN）を入力してください");
+      if (!token) { setStyle(styleNow.textContent || "v2"); return; }
+      try { localStorage.setItem("daf-admin-token", token); } catch(e){}
+    }
+    styleMsg.textContent = "変更中...";
+    fetch(STYLE_API + "/_style", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-admin-token": token },
+      body: JSON.stringify({ style: styleSelect.value })
+    }).then(function(r){ return r.json(); }).then(function(d){
+      if (d && d.style) {
+        setStyle(d.style);
+        styleMsg.textContent = "変更しました（" + d.style + "）";
+      } else {
+        styleMsg.textContent = "エラー: " + (d.error || "変更できませんでした");
+        setStyle(styleNow.textContent || "v2");
+      }
+    }).catch(function(){ styleMsg.textContent = "通信エラー"; setStyle(styleNow.textContent || "v2"); });
+  });
   document.getElementById("modalClose").addEventListener("click", function(){ modal.classList.remove("open"); modalFrame.src = "about:blank"; });
   modal.addEventListener("click", function(e){ if (e.target === modal) { modal.classList.remove("open"); modalFrame.src = "about:blank"; } });
   document.addEventListener("keydown", function(e){ if (e.key === "Escape") { modal.classList.remove("open"); modalFrame.src = "about:blank"; } });
