@@ -19,7 +19,10 @@ export default {
       if (request.method === "POST") {
         if (pathname === "/_run") return admin(env, request, async () => {
           const body = await request.json().catch(() => ({}));
-          const result = await runPipeline(env, null, { brief: body.brief || "" });
+          const result = await runPipeline(env, null, {
+            brief: body.brief || "",
+            style: body.style === "v2" ? "v2" : "v1",
+          });
           return json(result);
         });
         if (pathname === "/_collect") return admin(env, request, async () => {

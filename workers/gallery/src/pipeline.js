@@ -161,11 +161,12 @@ ${directive.signalRef ? `根拠シグナル: ${directive.signalRef}` : ""}
   return { spec };
 }
 
-async function implementOnce(env, { spec, directive, axis, failures, costState, attempt }) {
+async function implementOnce(env, { spec, directive, axis, failures, costState, attempt, style }) {
+  const rules = style === "v2" ? HOUSE_STYLE_V2 : HOUSE_STYLE_V1;
   const system = `あなたは「日刊アプリ工房」の実装担当。企画書とハウススタイル規約に従い、単一 HTML ファイルを実装してください。
 企画書の success_check の全項目を必ず満たす実装にすること（各項目をコード内でどう満たすかを実装前に考える）。
 ===== ハウススタイル規約（固定） =====
-${(env.HOUSE_STYLE_VERSION === "v2" ? HOUSE_STYLE_V2 : HOUSE_STYLE_V1)}
+${rules}
 ===== 出力ルール =====
 - 出力は完成した HTML コードのみ。コードフェンスや説明文は付けない。
 - フッターに「生成日: ${jstParts().date}」「お題の出所: ${directive.source === "user" ? "ユーザー投稿" : "自動"}」を必ず含める。
@@ -260,6 +261,7 @@ export async function runPipeline(env, ctx, opts = {}) {
 
   const runId = await recordRunStart(env, { started, axis, directive });
   const catalog = await loadCatalog(env);
+  const style = opts.style === "v2" ? "v2" : env.HOUSE_STYLE_VERSION === "v2" ? "v2" : "v1";
 
   // 4) 企画（最大3候補・重複回避・不作日判定）
   let spec = null;
@@ -295,7 +297,7 @@ export async function runPipeline(env, ctx, opts = {}) {
   let failures = [];
   let attempts = 0;
   for (attempts = 1; attempts <= MAX_ATTEMPTS; attempts++) {
-    html = await implementOnce(env, { spec, directive, axis, failures, costState, attempt: attempts });
+    html = await implementOnce(env, { spec, directive, axis, failures, costState, attempt: attempts, style });
     const mech = mechanicalCheck(html);
     if (!mech.ok) {
       failures = mech.failures;

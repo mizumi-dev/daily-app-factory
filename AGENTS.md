@@ -35,6 +35,7 @@
 - API キーは `.dev.vars`（gitignore 対象）に `DEEPSEEK_API_KEY=sk-...` で置く
 - モデル分担: 企画 = `deepseek-v4-pro`（思考）/ 実装 = `deepseek-v4-flash`（非思考・コスト優先）。実装が2回検証失敗したら最終試行のみ `deepseek-v4-pro`（非思考）へエスカレーション。
 - ハウススタイル規約は v1 / v2（試行版）を切替可能。ローカル: `--style v2`、パイプライン: `HOUSE_STYLE_VERSION=v2`（未設定なら v1）。規約本体は config/house-style*.md を編集し、Worker 側は workers/gallery/src/house-style.js も同期する。
+- パイプラインの手動実行（POST /_run）は `"style": "v2"` で v2 制作を指定できる。毎日 cron は既定 v1 のまま。
 
 ## アプリごとのフィードバック
 
