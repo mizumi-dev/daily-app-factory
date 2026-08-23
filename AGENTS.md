@@ -33,7 +33,7 @@
 - 生成: `npm run generate -- --brief "お題" [--axis 軸] [--model 企画モデル] [--impl-model 実装モデル]`
 - 静的検証: `npm run verify -- generated/YYYY-MM-DD-<slug>/index.html`
 - API キーは `.dev.vars`（gitignore 対象）に `DEEPSEEK_API_KEY=sk-...` で置く
-- モデル分担: 企画 = `deepseek-v4-pro`（思考）/ 実装 = `deepseek-v4-flash`（非思考・コスト優先）。実装が2回検証失敗したら最終試行のみ `deepseek-v4-pro`（非思考）へエスカレーション。
+- モデル分担: 企画会議 = DeepSeek + 交代制1社（OpenAI / Claude / Gemini）で「お題議論 → 初期提案 → 相互レビュー → 修正案 → DeepSeek Pro 審査」を行う。実装 = `deepseek-v4-flash`（非思考・コスト優先）。実装が2回検証失敗したら最終試行のみ `deepseek-v4-pro`（非思考）へエスカレーション。
 - ハウススタイル規約の基本は v2。v1 を使う場合はローカル `--style v1`、パイプライン `{"style":"v1"}` または `HOUSE_STYLE_VERSION=v1`。規約本体は config/house-style*.md を編集し、Worker 側は workers/gallery/src/house-style.js も同期する。
 - パイプラインの手動実行（POST /_run）は `"style": "v1"` で v1 制作を指定できる。毎日 cron は既定 v2。
 
