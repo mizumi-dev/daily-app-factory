@@ -53,7 +53,7 @@ function ftsToken(s) {
 }
 
 export async function listApps(env, opts = {}) {
-  const perPage = Math.min(48, Math.max(1, opts.perPage || 12));
+  const perPage = Math.min(500, Math.max(1, opts.perPage || 12));
   const page = Math.max(1, opts.page || 1);
   const where = ["status = 'live'"];
   const params = [];

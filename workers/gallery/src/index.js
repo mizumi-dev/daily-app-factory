@@ -145,7 +145,7 @@ async function appsJson(request, env, url) {
     origin: params.origin,
     sort: params.sort,
     page: Number(params.page) || 1,
-    perPage: Math.min(48, Number(url.searchParams.get("per_page")) || 12),
+    perPage: Math.min(200, Number(url.searchParams.get("per_page")) || 12),
   });
   const f = await facets(env);
   return json({ ...result, facets: f });

@@ -87,6 +87,7 @@ select.sort{background:var(--bg-soft);border:1.5px solid var(--border);border-ra
 .review{display:flex;align-items:center;gap:6px;font-size:0.82rem;color:var(--text-soft);cursor:pointer;user-select:none}.review input{accent-color:var(--ok);width:16px;height:16px;cursor:pointer}.review.done{color:var(--ok)}
 .fb-badge{font-size:0.72rem;background:rgba(255,140,66,0.16);color:#ffb27a;border:1px solid rgba(255,140,66,0.4);border-radius:999px;padding:2px 9px;text-decoration:none}
 .empty{text-align:center;color:var(--text-soft);padding:48px 0}footer{margin-top:28px;text-align:center;font-size:0.75rem;color:var(--text-soft);opacity:0.7}
+.pager{display:flex;justify-content:center;align-items:center;gap:12px;margin-top:18px}.pager button{border:1px solid var(--border);background:var(--panel);color:var(--text);border-radius:999px;padding:7px 18px;font-size:0.85rem;cursor:pointer;font-family:inherit}.pager button:hover{border-color:var(--accent);color:var(--accent)}.pager-info{font-size:0.8rem;color:var(--text-soft)}
 .modal{position:fixed;inset:0;background:rgba(0,0,0,0.72);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}.modal.open{display:flex}
 .modal-box{width:min(880px,100%);height:min(760px,90vh);background:var(--bg);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;border:1px solid var(--border)}
 .modal-head{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-soft)}.modal-title{font-size:0.9rem;font-weight:600}.modal-close{border:1px solid var(--border);background:transparent;color:var(--text);border-radius:999px;padding:5px 14px;cursor:pointer;font-family:inherit}
@@ -112,6 +113,7 @@ const BODY = `<main>
     </select>
   </section>
   <section class="grid" id="grid"></section>
+  <nav class="pager" id="pager" aria-label="ページ送り"></nav>
   <footer>日刊アプリ工房 · AI が自動生成したアプリの一覧です</footer>
 </main>
 <div class="modal" id="modal" role="dialog" aria-modal="true" aria-label="アプリプレビュー">
@@ -130,9 +132,11 @@ const SCRIPT = `<script>
   var APPS = JSON.parse(document.getElementById("apps-data").textContent);
   var AXIS_LABELS = __AXIS_LABELS__;
   var AXIS_COLORS = __AXIS_COLORS__;
-  var state = { q: "", axes: [], sort: "new" };
+  var state = { q: "", axes: [], sort: "new", page: 1 };
+  var PAGE_SIZE = 24;
   var REVIEW_KEY = "daf-review-v1";
   var grid = document.getElementById("grid");
+  var pager = document.getElementById("pager");
   var modal = document.getElementById("modal");
   var modalFrame = document.getElementById("modalFrame");
   var modalTitle = document.getElementById("modalTitle");
@@ -154,6 +158,7 @@ const SCRIPT = `<script>
         var a = c.getAttribute("data-axis");
         var i = state.axes.indexOf(a);
         if (i >= 0) state.axes.splice(i, 1); else state.axes.push(a);
+        state.page = 1;
         renderChips(); render();
       });
     });
@@ -191,7 +196,10 @@ const SCRIPT = `<script>
       '</div></article>';
   }
   function render(){
-    var list = filtered();
+    var all = filtered();
+    var totalPages = Math.max(1, Math.ceil(all.length / PAGE_SIZE));
+    if (state.page > totalPages) state.page = totalPages;
+    var list = all.slice((state.page - 1) * PAGE_SIZE, state.page * PAGE_SIZE);
     grid.innerHTML = list.map(cardHtml).join("");
     if (!list.length) grid.innerHTML = '<p class="empty">該当するアプリがありません。</p>';
     grid.querySelectorAll("[data-preview]").forEach(function(b){
@@ -211,9 +219,21 @@ const SCRIPT = `<script>
     var pct = APPS.length ? Math.round(doneCount / APPS.length * 100) : 0;
     document.getElementById("progressFill").style.width = pct + "%";
     document.getElementById("progressLabel").textContent = "確認済み: " + doneCount + " / " + APPS.length + "（" + pct + "%）";
+    renderPager(all.length, totalPages);
   }
-  document.getElementById("search").addEventListener("input", function(e){ state.q = e.target.value; render(); });
-  document.getElementById("sort").addEventListener("change", function(e){ state.sort = e.target.value; render(); });
+  function renderPager(total, totalPages){
+    if (totalPages <= 1) { pager.innerHTML = ""; return; }
+    var html = "";
+    if (state.page > 1) html += '<button type="button" data-page="' + (state.page - 1) + '">← 前へ</button>';
+    html += '<span class="pager-info">' + state.page + " / " + totalPages + "（全 " + total + " 本）</span>";
+    if (state.page < totalPages) html += '<button type="button" data-page="' + (state.page + 1) + '">次へ →</button>';
+    pager.innerHTML = html;
+    pager.querySelectorAll("[data-page]").forEach(function(b){
+      b.addEventListener("click", function(){ state.page = Number(b.getAttribute("data-page")); render(); });
+    });
+  }
+  document.getElementById("search").addEventListener("input", function(e){ state.q = e.target.value; state.page = 1; render(); });
+  document.getElementById("sort").addEventListener("change", function(e){ state.sort = e.target.value; state.page = 1; render(); });
   document.getElementById("modalClose").addEventListener("click", function(){ modal.classList.remove("open"); modalFrame.src = "about:blank"; });
   modal.addEventListener("click", function(e){ if (e.target === modal) { modal.classList.remove("open"); modalFrame.src = "about:blank"; } });
   document.addEventListener("keydown", function(e){ if (e.key === "Escape") { modal.classList.remove("open"); modalFrame.src = "about:blank"; } });
@@ -230,9 +250,10 @@ const SCRIPT = `<script>
       feedbackPath: ""
     };
   }
-  fetch(LIVE_API).then(function(r){ return r.json(); }).then(function(d){
+  fetch(LIVE_API + "?per_page=200").then(function(r){ return r.json(); }).then(function(d){
     if (d && Array.isArray(d.apps) && d.apps.length) {
       APPS = d.apps.map(toLive);
+      state.page = 1;
       renderChips(); render();
     }
   }).catch(function(){});
