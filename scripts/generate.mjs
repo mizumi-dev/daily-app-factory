@@ -53,11 +53,11 @@ function usage() {
   --axis    軸（省略時は曜日から自動割り当て）
   --model   企画（spec 生成）に使うモデル（既定: deepseek-v4-pro）
   --impl-model  実装（HTML 生成）に使うモデル（既定: deepseek-v4-flash）
-  --style   ハウススタイル規約のバージョン（既定: v1）`);
+  --style   ハウススタイル規約のバージョン（既定: v2）`);
 }
 
 function parseArgs(argv) {
-  const args = { brief: null, axis: null, model: DEFAULT_MODEL, implModel: DEFAULT_IMPL_MODEL, style: "v1", help: false };
+  const args = { brief: null, axis: null, model: DEFAULT_MODEL, implModel: DEFAULT_IMPL_MODEL, style: "v2", help: false };
   for (let i = 0; i < argv.length; i++) {
     switch (argv[i]) {
       case "--brief":
@@ -338,7 +338,7 @@ async function planApp({ key, model, brief, axis, catalog }) {
 }
 
 async function implementApp({ key, model, spec, brief, axis, style }) {
-  const styleFile = style === "v2" ? "house-style-v2.md" : "house-style.md";
+  const styleFile = style === "v1" ? "house-style.md" : "house-style-v2.md";
   const houseStyle = readFileSync(join(ROOT, "config", styleFile), "utf8");
   const instructions = `あなたは「日刊アプリ工房」の実装担当。企画書（spec）とハウススタイル規約に従って、単一 HTML ファイルのアプリを実装してください。
 

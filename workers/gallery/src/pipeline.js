@@ -261,7 +261,8 @@ export async function runPipeline(env, ctx, opts = {}) {
 
   const runId = await recordRunStart(env, { started, axis, directive });
   const catalog = await loadCatalog(env);
-  const style = opts.style === "v2" ? "v2" : env.HOUSE_STYLE_VERSION === "v2" ? "v2" : "v1";
+  // 基本は v2。v1 は明示指定時のみ（opts.style / HOUSE_STYLE_VERSION のどちらかで v1 を指定）
+  const style = opts.style === "v1" ? "v1" : env.HOUSE_STYLE_VERSION === "v1" ? "v1" : "v2";
 
   // 4) 企画（最大3候補・重複回避・不作日判定）
   let spec = null;

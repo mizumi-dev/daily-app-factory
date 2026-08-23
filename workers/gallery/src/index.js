@@ -21,7 +21,7 @@ export default {
           const body = await request.json().catch(() => ({}));
           const result = await runPipeline(env, null, {
             brief: body.brief || "",
-            style: body.style === "v2" ? "v2" : "v1",
+            style: body.style === "v1" ? "v1" : "v2",
           });
           return json(result);
         });

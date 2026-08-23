@@ -15,6 +15,13 @@ const DB = "daily-app-factory-db";
 const BUCKET = "daily-app-factory-apps";
 const SEED_SQL = join(ROOT, "tmp", "seed.sql");
 const LOCAL = process.argv.includes("--local");
+const ONLY_ARG = process.argv.indexOf("--only");
+const ONLY_SLUGS = ONLY_ARG >= 0
+  ? String(process.argv[ONLY_ARG + 1] || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
+  : [];
 
 function run(args, silent = false) {
   // Windows では .cmd ラッパーを shell 経由で起動する（引数に空白を含まない前提）
@@ -55,6 +62,7 @@ function collectApps() {
     const spec = readJsonSafe(join(dir, "spec.json"));
     const htmlPath = join(dir, "index.html");
     if (!spec || !existsSync(htmlPath)) continue;
+    if (ONLY_SLUGS.length && !ONLY_SLUGS.includes(spec.slug)) continue;
     const dateMatch = entry.name.match(/^(\d{4}-\d{2}-\d{2})/);
     const date = dateMatch ? dateMatch[1] : new Date().toISOString().slice(0, 10);
     apps.push({
@@ -73,8 +81,8 @@ function collectApps() {
   return apps.sort((a, b) => a.date.localeCompare(b.date));
 }
 
-function buildSql(apps) {
-  const stmts = ["DELETE FROM apps;", "DELETE FROM app_tags;", "DELETE FROM apps_fts;"];
+function buildSql(apps, incremental = false) {
+  const stmts = incremental ? [] : ["DELETE FROM apps;", "DELETE FROM app_tags;", "DELETE FROM apps_fts;"];
   for (const a of apps) {
     stmts.push(
       `INSERT OR REPLACE INTO apps (slug,title,tagline,description,axis,origin,published_at,bytes,gen_cost_usd,gen_attempts,status) VALUES ('${sq(a.slug)}','${sq(a.title)}','${sq(a.tagline)}','${sq(a.description)}','${sq(a.axis)}','user','${a.date}T04:00:00.000Z',${a.bytes},0.01,1,'live');`
@@ -96,11 +104,12 @@ function main() {
     process.exit(1);
   }
   const scope = LOCAL ? "local" : "remote";
-  console.log(`seed: ${apps.length} アプリを D1(${scope}) + R2(${scope}) へ投入します`);
+  const mode = ONLY_SLUGS.length ? "追加投入" : "全件再投入";
+  console.log(`seed(${mode}): ${apps.length} アプリを D1(${scope}) + R2(${scope}) へ投入します`);
 
   console.log("D1: メタデータ投入");
   mkdirSync(dirname(SEED_SQL), { recursive: true });
-  writeFileSync(SEED_SQL, buildSql(apps), "utf8");
+  writeFileSync(SEED_SQL, buildSql(apps, ONLY_SLUGS.length > 0), "utf8");
   run([
     "wrangler",
     "d1",
