@@ -1,6 +1,6 @@
 // 日次パイプライン: 起動 → お題決定 → 企画 → 実装 → 検証 → 公開
 import { chat, estimateCost, PRO, FLASH } from "./deepseek.js";
-import { HOUSE_STYLE_V1, HOUSE_STYLE_V2 } from "./house-style.js";
+import { HOUSE_STYLE_V1, HOUSE_STYLE_V2, HOUSE_STYLE_V3 } from "./house-style.js";
 import { mechanicalCheck, aiCheck, extractJsonObject } from "./verify.js";
 import { sendNotify } from "./notify.js";
 import { activePlanners, planWith } from "./planners.js";
@@ -15,8 +15,11 @@ const AXIS_LABELS = {
   wonder: "好奇心",
   duo: "ふたりで",
 };
+const PLANNER_NAMES = { deepseek: "DeepSeek", openai: "OpenAI", anthropic: "Claude", gemini: "Gemini" };
+const plannerName = (id) => PLANNER_NAMES[id] || id;
 const MAX_ATTEMPTS = 3;
 const MONTHLY_BUDGET_USD = 10;
+const STYLE_VERSIONS = ["v1", "v2", "v3"];
 
 function jstParts() {
   const fmt = new Intl.DateTimeFormat("en-CA", {
@@ -95,6 +98,70 @@ function thumbSvg(spec, color) {
   ${lines.map((l, i) => `<text x="300" y="${140 + i * 42}" text-anchor="middle" font-family="Meiryo,sans-serif" font-size="30" font-weight="bold" fill="#f2ede2">${l.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</text>`).join("")}
   <text x="300" y="268" text-anchor="middle" font-family="Meiryo,sans-serif" font-size="13" fill="#6f675c">日刊アプリ工房</text>
 </svg>`;
+}
+
+function buildMinutes({ date, directive, axis, pairLabel, round, adopted, spec, attempts, bytes, slug }) {
+  const statusText = Object.entries(round?.results || {})
+    .map(([id, r]) => {
+      if (!r.ok) return `- ${plannerName(id)}: エラー（${r.error || "応答なし"}）`;
+      if (r.duplicate) return `- ${plannerName(id)}: 企画は出たが既存と重複のため対象外`;
+      if (r.infeasible) return `- ${plannerName(id)}: 実現不可能と判定`;
+      return `- ${plannerName(id)}: 企画を提出`;
+    })
+    .join("\n");
+  const candidatesText = (round?.candidates || [])
+    .map((c, i) => {
+      const s = c.spec;
+      return `### ${i + 1}. ${plannerName(c.provider)}案「${s.title}」
+- タグライン: ${s.tagline}
+- 軸: ${s.axis}
+- タグ: ${(s.tags || []).join(", ")}
+- 誰のため: ${s.who}
+- 役割: ${s.job}
+- 意図: ${s.reason || ""}
+- 検証項目: ${(s.success_check || []).map((x) => `「${x}」`).join(" / ")}`;
+    })
+    .join("\n\n");
+  const scores = Object.entries(round?.judge?.scores || {})
+    .map(([id, sc]) => `${plannerName(id)} ${sc}点`)
+    .join(" / ");
+  const judgeLines = [
+    `- スコア: ${scores || "（記録なし）"}`,
+    `- 選定: ${plannerName(round?.judge?.selected || adopted)}案`,
+    `- 理由: ${round?.judge?.reason || "（理由の記録なし）"}`,
+  ];
+  if (round?.judge?.fallback) {
+    judgeLines.push("- 補足: 審査結果の形式を解釈できなかったため先頭案でフォールバックしました。");
+  }
+  return `# 企画会議 議事録
+
+- 日付: ${date}
+- お題: ${directive.text || "（自動: 今日の軸に合う身近なアプリ）"}
+- 軸: ${axis}（${AXIS_LABELS[axis]}）
+- 出所: ${directive.source === "user" ? "ユーザー投稿" : "自動"}
+- 参加AI: ${pairLabel.split("+").map(plannerName).join(" + ")}
+- 採用企画: ${plannerName(adopted)}案
+- 実装: 成功（試行 ${attempts} 回・${bytes} bytes）
+- 公開URL: /app/${slug}
+
+## 参加状況
+
+${statusText || "（記録なし）"}
+
+## 提出された企画
+
+${candidatesText || "（企画が成立しなかったため記録なし）"}
+
+## 審査（DeepSeek Pro 議長）
+
+${judgeLines.join("\n")}
+
+## 採用された企画書（spec）
+
+\`\`\`json
+${JSON.stringify(spec, null, 2)}
+\`\`\`
+`;
 }
 
 async function recordRunStart(env, { started, axis, directive }) {
@@ -190,7 +257,7 @@ ${directive.signalRef ? `根拠シグナル: ${directive.signalRef}` : ""}
   // 1案しかなければ審査は不要。2案以上は審査役（DeepSeek Pro）が採点して選定する
   let judged;
   if (candidates.length === 1) {
-    judged = { selected: candidates[0], fallback: false };
+    judged = { selected: candidates[0], fallback: false, scores: {}, reason: "" };
   } else {
     try {
       judged = await judgePlans(env, { directive, axis, catalog, candidates, costState });
@@ -203,6 +270,13 @@ ${directive.signalRef ? `根拠シグナル: ${directive.signalRef}` : ""}
     spec: judged.selected.spec,
     provider: judged.selected.provider,
     results,
+    candidates: candidates.map((c) => ({ provider: c.provider, label: c.label, spec: c.spec })),
+    judge: {
+      selected: judged.selected.provider,
+      scores: judged.scores || {},
+      reason: judged.reason || "",
+      fallback: judged.fallback || false,
+    },
     judgeFallback: judged.fallback || false,
   };
 }
@@ -243,7 +317,7 @@ ${list}`;
   costState.out += cost.outTok;
   const parsed = extractJson(text);
   if (!parsed || typeof parsed !== "object") {
-    return { selected: candidates[0], fallback: true, error: "審査結果が JSON で返らなかった" };
+    return { selected: candidates[0], fallback: true, scores: {}, reason: "", error: "審査結果が JSON で返らなかった" };
   }
   const byId = Object.fromEntries(candidates.map((c) => [c.provider, c]));
   const aliases = {
@@ -262,11 +336,11 @@ ${list}`;
       .sort((a, b) => (Number(scores[b.provider]) || 0) - (Number(scores[a.provider]) || 0))[0];
     selected = best || candidates[0];
   }
-  return { selected, fallback: !matched };
+  return { selected, fallback: !matched, scores: parsed.scores || {}, reason: parsed.reason || "" };
 }
 
 async function implementOnce(env, { spec, directive, axis, failures, costState, attempt, style }) {
-  const rules = style === "v2" ? HOUSE_STYLE_V2 : HOUSE_STYLE_V1;
+  const rules = style === "v3" ? HOUSE_STYLE_V3 : style === "v2" ? HOUSE_STYLE_V2 : HOUSE_STYLE_V1;
   const system = `あなたは「日刊アプリ工房」の実装担当。企画書とハウススタイル規約に従い、単一 HTML ファイルを実装してください。
 企画書の success_check の全項目を必ず満たす実装にすること（各項目をコード内でどう満たすかを実装前に考える）。
 ===== ハウススタイル規約（固定） =====
@@ -365,8 +439,12 @@ export async function runPipeline(env, ctx, opts = {}) {
 
   const runId = await recordRunStart(env, { started, axis, directive });
   const catalog = await loadCatalog(env);
-  // 基本は v2。v1 は明示指定時のみ（opts.style / HOUSE_STYLE_VERSION のどちらかで v1 を指定）
-  const style = opts.style === "v1" ? "v1" : env.HOUSE_STYLE_VERSION === "v1" ? "v1" : "v2";
+  // 基本は v2。v1 / v3 は明示指定時のみ（opts.style / HOUSE_STYLE_VERSION で指定）
+  const style = STYLE_VERSIONS.includes(opts.style)
+    ? opts.style
+    : STYLE_VERSIONS.includes(env.HOUSE_STYLE_VERSION)
+      ? env.HOUSE_STYLE_VERSION
+      : "v2";
 
   // 4) 企画（DeepSeek + 1社の交代制 → 審査役が選定。最大3ラウンド）
   const allPlanners = activePlanners(env);
@@ -385,6 +463,7 @@ export async function runPipeline(env, ctx, opts = {}) {
   const pairLabel = pairProviders.map((p) => p.id).join("+") || "none";
   let spec = null;
   let adopted = null;
+  let planRoundInfo = null;
   let plannerResults = {};
   let planError = "";
   for (let i = 0; i < 3 && !spec; i++) {
@@ -402,6 +481,7 @@ export async function runPipeline(env, ctx, opts = {}) {
     }
     spec = round.spec;
     adopted = round.provider;
+    planRoundInfo = round;
   }
   if (!spec) {
     await finishRun(env, runId, {
@@ -452,6 +532,21 @@ export async function runPipeline(env, ctx, opts = {}) {
   await env.APPS.put(`apps/${slug}/index.html`, html, {
     httpMetadata: { contentType: "text/html; charset=utf-8" },
   });
+  const minutes = buildMinutes({
+    date,
+    directive,
+    axis,
+    pairLabel,
+    round: planRoundInfo,
+    adopted,
+    spec,
+    attempts,
+    bytes,
+    slug,
+  });
+  await env.APPS.put(`apps/${slug}/minutes.md`, minutes, {
+    httpMetadata: { contentType: "text/markdown; charset=utf-8" },
+  });
   const colors = {
     laugh: "#ffb347", lighten: "#7fd6a8", productivity: "#4da3ff",
     insight: "#c79bff", decide: "#ff8c66", wonder: "#5be0d6", duo: "#ff7fc3",
@@ -460,8 +555,8 @@ export async function runPipeline(env, ctx, opts = {}) {
     httpMetadata: { contentType: "image/svg+xml" },
   });
   await env.DB.prepare(
-    `INSERT OR REPLACE INTO apps (slug,title,tagline,description,axis,origin,brief_id,signal_ref,published_at,bytes,gen_cost_usd,gen_attempts,planner,adopted_planner,status)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,'live')`
+    `INSERT OR REPLACE INTO apps (slug,title,tagline,description,axis,origin,brief_id,signal_ref,published_at,bytes,gen_cost_usd,gen_attempts,planner,adopted_planner,has_minutes,status)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,1,'live')`
   )
     .bind(
       slug,
