@@ -47,16 +47,17 @@ const AXIS_LABELS = {
 
 function usage() {
   console.log(`使い方:
-  node scripts/generate.mjs --brief "お題" [--axis laugh|lighten|productivity|insight|decide|wonder|duo] [--model deepseek-v4-pro] [--impl-model deepseek-v4-flash]
+  node scripts/generate.mjs --brief "お題" [--axis laugh|lighten|productivity|insight|decide|wonder|duo] [--model deepseek-v4-pro] [--impl-model deepseek-v4-flash] [--style v1|v2]
 
   --brief   お題テキスト（必須）
   --axis    軸（省略時は曜日から自動割り当て）
   --model   企画（spec 生成）に使うモデル（既定: deepseek-v4-pro）
-  --impl-model  実装（HTML 生成）に使うモデル（既定: deepseek-v4-flash）`);
+  --impl-model  実装（HTML 生成）に使うモデル（既定: deepseek-v4-flash）
+  --style   ハウススタイル規約のバージョン（既定: v1）`);
 }
 
 function parseArgs(argv) {
-  const args = { brief: null, axis: null, model: DEFAULT_MODEL, implModel: DEFAULT_IMPL_MODEL, help: false };
+  const args = { brief: null, axis: null, model: DEFAULT_MODEL, implModel: DEFAULT_IMPL_MODEL, style: "v1", help: false };
   for (let i = 0; i < argv.length; i++) {
     switch (argv[i]) {
       case "--brief":
@@ -70,6 +71,9 @@ function parseArgs(argv) {
         break;
       case "--impl-model":
         args.implModel = argv[++i];
+        break;
+      case "--style":
+        args.style = argv[++i];
         break;
       case "--help":
       case "-h":
@@ -333,8 +337,9 @@ async function planApp({ key, model, brief, axis, catalog }) {
   throw new Error("企画ステージが収束しませんでした");
 }
 
-async function implementApp({ key, model, spec, brief, axis }) {
-  const houseStyle = readFileSync(join(ROOT, "config", "house-style.md"), "utf8");
+async function implementApp({ key, model, spec, brief, axis, style }) {
+  const styleFile = style === "v2" ? "house-style-v2.md" : "house-style.md";
+  const houseStyle = readFileSync(join(ROOT, "config", styleFile), "utf8");
   const instructions = `あなたは「日刊アプリ工房」の実装担当。企画書（spec）とハウススタイル規約に従って、単一 HTML ファイルのアプリを実装してください。
 
 ===== ハウススタイル規約（固定） =====
@@ -428,7 +433,14 @@ async function main() {
   const { spec } = await planApp({ key, model: args.model, brief: args.brief, axis, catalog });
   console.log(`  企画: ${spec.title}（${spec.tags.join(", ")}）`);
 
-  const html = await implementApp({ key, model: args.implModel, spec, brief: args.brief, axis });
+  const html = await implementApp({
+    key,
+    model: args.implModel,
+    spec,
+    brief: args.brief,
+    axis,
+    style: args.style,
+  });
 
   const date = todayIso();
   const outDir = join(GENERATED_DIR, `${date}-${spec.slug}`);
