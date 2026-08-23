@@ -21,6 +21,7 @@ function buildQuery(params) {
   if (params.tag) p.set("tag", params.tag);
   if (params.origin) p.set("origin", params.origin);
   if (params.sort && params.sort !== "new") p.set("sort", params.sort);
+  if (params.page && params.page > 1) p.set("page", params.page);
   return p.toString();
 }
 
@@ -59,6 +60,7 @@ export function renderGallery({ apps, total, page, perPage, params, facets, site
       const next = on ? activeAxes.filter((x) => x !== a) : [...activeAxes, a];
       const p = { ...params, axis: next.join(",") };
       if (!p.axis) delete p.axis;
+      delete p.page;
       return `<a class="chip${on ? " on" : ""}" href="/?${buildQuery(p)}">${AXIS_LABELS[a]}</a>`;
     })
     .join("");
@@ -69,6 +71,7 @@ export function renderGallery({ apps, total, page, perPage, params, facets, site
       const p = { ...params };
       if (on) delete p.tag;
       else p.tag = t.tag;
+      delete p.page;
       return `<a class="chip${on ? " on" : ""}" href="/?${buildQuery(p)}">${esc(t.tag)} (${t.c})</a>`;
     })
     .join("");
@@ -79,6 +82,7 @@ export function renderGallery({ apps, total, page, perPage, params, facets, site
       const p = { ...params };
       if (on) delete p.origin;
       else p.origin = o.origin;
+      delete p.page;
       const label = o.origin === "auto" ? "自動" : "ユーザー投稿";
       return `<a class="chip${on ? " on" : ""}" href="/?${buildQuery(p)}">${label} (${o.c})</a>`;
     })
