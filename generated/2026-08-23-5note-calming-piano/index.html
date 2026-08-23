@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>押すたびに整う五音ミニピアノ</title>
+<style>
+  :root {
+    --bg-light: #f5f2eb;
+    --bg-dark: #1e252d;
+    --key-light: #fdfbf7;
+    --key-dark: #2a323c;
+    --key-shadow: rgba(0,0,0,0.2);
+    --accent: #b86b5c;
+    --text-light: #2e2a26;
+    --text-dark: #ece7e0;
+    --wave-light: rgba(184, 107, 92, 0.3);
+    --wave-dark: rgba(230, 170, 150, 0.3);
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", "Noto Sans JP", system-ui, sans-serif;
+    background: var(--bg-light);
+    color: var(--text-light);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    transition: background 0.6s ease, color 0.3s ease;
+    touch-action: manipulation;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    body {
+      background: var(--bg-dark);
+      color: var(--text-dark);
+    }
+    .piano-container {
+      background: rgba(30, 40, 50, 0.7);
+    }
+    .piano-key {
+      background: var(--key-dark);
+      box-shadow: 0 5px 0 #172028, 0 8px 12px rgba(0,0,0,0.5);
+      color: #f0ece6;
+    }
+    .piano-key:active {
+      transform: translateY(4px);
+      box-shadow: 0 2px 0 #172028, 0 4px 8px rgba(0,0,0,0.6);
+    }
+    .toggle-btn {
+      background: #3a4652;
+      color: #e9e2d8;
+      box-shadow: 0 3px 0 #222c35;
+    }
+    .toggle-btn.active {
+      background: var(--accent);
+      color: #fff;
+    }
+    .canvas-overlay {
+      background: radial-gradient(circle, transparent 0%, rgba(20,25,30,0.4) 100%);
+    }
+    .message {
+      color: #cbbeb3;
+    }
+  }
+
+  .app-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 600px;
+    user-select: none;
+  }
+
+  .canvas-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    opacity: 0.6;
+  }
+
+  .content {
+    position: relative;
+    z-index: 5;
+    width: 100%;
+  }
+
+  h1 {
+    font-size: 1.8rem;
+    font-weight: 600;
+    text-align: center;
+    letter-spacing: 1px;
+    margin: 8px 0 4px;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+
+  .tagline {
+    font-size: 0.9rem;
+    text-align: center;
+    margin-bottom: 18px;
+    opacity: 0.8;
+    font-weight: 400;
+    padding: 0 12px;
+  }
+
+  .piano-container {
+    background: rgba(255,250,240,0.4);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border-radius: 48px 48px 24px 24px;
+    padding: 24px 16px 20px;
+    box-shadow: 0 12px 24px rgba(0,0,0,0.15), inset 0 2px 4px rgba(255,255,255,0.3);
+    width: 100%;
+    border: 1px solid rgba(255,255,255,0.3);
+  }
+
+  .keys-wrapper {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .piano-key {
+    width: 72px;
+    height: 160px;
+    border-radius: 16px 16px 8px 8px;
+    background: var(--key-light);
+    box-shadow: 0 6px 0 #bfb7ae, 0 8px 16px var(--key-shadow);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    padding-bottom: 18px;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #3a3530;
+    transition: transform 0.08s ease, box-shadow 0.12s ease, background 0.2s ease;
+    cursor: pointer;
+    border: none;
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+    letter-spacing: 1px;
+  }
+
+  .piano-key span {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 500;
+    opacity: 0.7;
+    margin-top: 4px;
+  }
+
+  .piano-key:active, .piano-key.playing {
+    transform: translateY(5px);
+    box-shadow: 0 2px 0 #bfb7ae, 0 4px 10px rgba(0,0,0,0.2);
+  }
+
+  @media (max-width: 500px) {
+    .piano-key {
+      width: 62px;
+      height: 140px;
+    }
+  }
+
+  @media (max-width: 400px) {
+    .piano-key {
+      width: 55px;
+      height: 120px;
+      font-size: 1.2rem;
+    }
+  }
+
+  .controls {
+    display: flex;
+    justify-content: center;
+    margin-top: 22px;
+    gap: 10px;
+  }
+
+  .toggle-btn {
+    background: #ddd6cc;
+    border: none;
+    border-radius: 40px;
+    padding: 10px 22px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #2a2520;
+    cursor: pointer;
+    box-shadow: 0 4px 0 #b8b0a6;
+    transition: 0.1s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    letter-spacing: 0.3px;
+  }
+
+  .toggle-btn:active {
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 #b8b0a6;
+  }
+
+  .toggle-btn.active {
+    background: var(--accent);
+    color: white;
+    box-shadow: 0 4px 0 #994d3f;
+  }
+
+  .message {
+    margin-top: 18px;
+    font-size: 0.85rem;
+    opacity: 0.9;
+    min-height: 1.5em;
+    text-align: center;
+  }
+
+  footer {
+    margin-top: 28px;
+    font-size: 0.7rem;
+    opacity: 0.6;
+    text-align: center;
+    border-top: 1px solid rgba(128,128,128,0.2);
+    padding-top: 12px;
+    width: 100%;
+    max-width: 500px;
+    z-index: 5;
+    position: relative;
+  }
+
+  .sr-only {
+    position: absolute;
+    left: -10000px;
+    top: auto;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      transition: none !important;
+      animation: none !important;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="canvas-overlay">
+  <canvas id="waveCanvas" aria-hidden="true"></canvas>
+</div>
+
+<main class="app-wrap">
+  <div class="content">
+    <h1>五音ミニピアノ</h1>
+    <p class="tagline">どの音も混ざり合う、心軽やか五音階</p>
+
+    <div class="piano-container">
+      <div class="keys-wrapper" id="keyboard" role="group" aria-label="五音ピアノ鍵盤">
+        <!-- ドレミソラ (五音階＝ヨナ抜き) -->
+        <button class="piano-key" data-note="C5" data-name="ド" tabindex="0" aria-label="ド">
+          <span>ド</span>
+        </button>
+        <button class="piano-key" data-note="D5" data-name="レ" tabindex="0" aria-label="レ">
+          <span>レ</span>
+        </button>
+        <button class="piano-key" data-note="E5" data-name="ミ" tabindex="0" aria-label="ミ">
+          <span>ミ</span>
+        </button>
+        <button class="piano-key" data-note="G5" data-name="ソ" tabindex="0" aria-label="ソ">
+          <span>ソ</span>
+        </button>
+        <button class="piano-key" data-note="A5" data-name="ラ" tabindex="0" aria-label="ラ">
+          <span>ラ</span>
+        </button>
+      </div>
+      <div class="controls">
+        <button id="sighModeBtn" class="toggle-btn" aria-pressed="false">
+          <span aria-hidden="true">🌬️</span> ため息モード
+        </button>
+      </div>
+    </div>
+
+    <p class="message" id="feedbackMessage" aria-live="polite">鍵盤を押してみて</p>
+  </div>
+
+  <footer>
+    <div>生成日: 2026-08-23</div>
+    <div>お題の出所: ユーザー投稿</div>
+  </footer>
+</main>
+
+<script>
+(function(){
+  try {
+    "use strict";
+
+    // --- 基本設定 ---
+    const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const waveColor = isDark ? 'rgba(230, 180, 150, 0.35)' : 'rgba(184, 107, 92, 0.3)';
+    const targetFreqs = {
+      'C5': 523.25,
+      'D5': 587.33,
+      'E5': 659.25,
+      'G5': 783.99,
+      'A5': 880.00
+    };
+
+    // --- AudioContext生成 (iOS対応) ---
+    let audioCtx = null;
+    function initAudio() {
+      if (!audioCtx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (AC) {
+          audioCtx = new AC();
+        } else {
+          return null;
+        }
+      }
+      return audioCtx;
+    }
+
+    // --- 音生成: ソフトな正弦波 + 音量エンベロープ + オプションで余韻 ---
+    function playTone(freq, sighMode) {
+      const ctx = initAudio();
+      if (!ctx) return;
+
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const secondaryOsc = ctx.createOscillator();
+      const secondaryGain = ctx.createGain();
+
+      // 基本波形: サイン波 (やわらかい)
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now);
+
+      // 少し倍音を加えて温かみを (音量抑えめ)
+      secondaryOsc.type = 'sine';
+      secondaryOsc.frequency.setValueAtTime(freq * 2, now);
+
+      // 音量エンベロープ
+      const attack = 0.02;
+      const release = sighMode ? 2.0 : 0.8; // ため息モードは長めの余韻
+      const peak = sighMode ? 0.12 : 0.18;
+
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(peak, now + attack);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + release);
+
+      secondaryGain.gain.setValueAtTime(0.0001, now);
+      secondaryGain.gain.linearRampToValueAtTime(peak * 0.25, now + attack * 2);
+      secondaryGain.gain.exponentialRampToValueAtTime(0.0001, now + release * 1.3);
+
+      osc.connect(gain).connect(ctx.destination);
+      secondaryOsc.connect(secondaryGain).connect(ctx.destination);
+
+      osc.start(now);
+      secondaryOsc.start(now);
+      osc.stop(now + release + 0.3);
+      secondaryOsc.stop(now + release + 0.3);
+    }
+
+    // --- Canvas 波紋・背景色変化 ---
+    const canvas = document.getElementById('waveCanvas');
+    const ctx = canvas.getContext('2d');
+    let animationFrame;
+    let waves = [];
+    let bgLighten = 0; // 0〜1 気分を明るく表現
+    let lastTime = 0;
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    function pushWave(x, y, noteFreq) {
+      // x,yは相対位置 (0..1) を想定
+      const width = canvas.width;
+      const height = canvas.height;
+      const centerX = x * width;
+      const centerY = y * height;
+      const now = performance.now() / 1000;
+      const wave = {
+        x: centerX,
+        y: centerY,
+        radius: 10,
+        maxRadius: 150 + (noteFreq % 200) * 0.3,
+        alpha: 0.55,
+        createdAt: now
+      };
+      waves.push(wave);
+      if (waves.length > 12) waves.shift(); // 制限
+      bgLighten = Math.min(0.5, bgLighten + 0.08); // 背景を明るく
+    }
+
+    function renderWaves(timestamp) {
+      const time = timestamp / 1000;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // 背景色変化: 全体に薄い色を重ねる
+      ctx.fillStyle = isDark ? `rgba(240, 200, 170, ${bgLighten * 0.08})` : `rgba(255, 230, 200, ${bgLighten * 0.12})`;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // 波紋描画
+      for (let i = waves.length - 1; i >= 0; i--) {
+        const w = waves[i];
+        const age = time - w.createdAt;
+        if (age > 1.8) {
+          waves.splice(i, 1);
+          continue;
+        }
+        const progress = Math.min(age / 1.5, 1);
+        const r = w.radius + progress * (w.maxRadius - 10);
+        const alpha = w.alpha * (1 - progress) * (isDark ? 0.35 : 0.45);
+
+        // 同心円波紋
+        ctx.beginPath();
+        ctx.arc(w.x, w.y, r, 0, Math.PI * 2);
+        ctx.strokeStyle = isDark ? `rgba(240, 190, 160, ${alpha})` : `rgba(190, 110, 90, ${alpha})`;
+        ctx.lineWidth = 2 + (1 - progress) * 4;
+        ctx.stroke();
+
+        // 内側の光
+        ctx.beginPath();
+        ctx.arc(w.x, w.y, r * 0.6, 0, Math.PI * 2);
+        ctx.fillStyle = isDark ? `rgba(255, 220, 200, ${alpha*0.2})` : `rgba(200, 150, 120, ${alpha*0.3})`;
+        ctx.fill();
+      }
+
+      // bgLightenをゆっくり減衰
+      bgLighten = Math.max(0, bgLighten - 0.005);
+
+      animationFrame = requestAnimationFrame(renderWaves);
+    }
+    animationFrame = requestAnimationFrame(renderWaves);
+
+    // --- 鍵盤イベント ---
+    const keys = document.querySelectorAll('.piano-key');
+    const feedback = document.getElementById('feedbackMessage');
+    const sighBtn = document.getElementById('sighModeBtn');
+    let sighMode = false;
+
+    // ため息モード切替
+    sighBtn.addEventListener('click', function() {
+      sighMode = !sighMode;
+      this.classList.toggle('active', sighMode);
+      this.setAttribute('aria-pressed', sighMode);
+      feedback.textContent = sighMode ? 'ため息モード: 音がふわっと長く響きます' : '通常モード: やわらかい音が響きます';
+    });
+
+    // 押下処理 (タップ/クリック/キーボード)
+    function handleKeyPress(e) {
+      // キーボード（Enter/Space）対応
+      if (e.type === 'keydown') {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        // スペースでページがスクロールしないように
+        e.preventDefault();
+      }
+
+      const btn = e.currentTarget;
+      const note = btn.dataset.note;
+      if (!note) return;
+
+      const freq = targetFreqs[note];
+      if (!freq) return;
+
+      // 音を鳴らす
+      playTone(freq, sighMode);
+
+      // 視覚フィードバック: 押下アニメーション
+      btn.classList.add('playing');
+      setTimeout(() => btn.classList.remove('playing'), 120);
+
+      // 波紋を発生（鍵盤の位置から）
+      const rect = btn.getBoundingClientRect();
+      const x = (rect.left + rect.width / 2) / window.innerWidth;
+      const y = (rect.top + rect.height / 2) / window.innerHeight;
+      pushWave(x, y, freq);
+
+      // メッセージ
+      const noteName = btn.dataset.name || '';
+      feedback.textContent = `♫ ${noteName} の音（${freq.toFixed(1)} Hz）`;
+
+      // 短い振動（モバイル）
+      if (navigator.vibrate) navigator.vibrate(15);
+    }
+
+    keys.forEach(key => {
+      key.addEventListener('click', handleKeyPress);
+      key.addEventListener('keydown', handleKeyPress);
+      // 便利のため touchstart でも反応（誤スクロール対策にpreventDefaultはしない）
+      key.addEventListener('touchstart', function(e) {
+        // すでにクリックで処理するが、二重発火は防止
+        if (e.touches.length > 1) return;
+        // セルフ・フラグで二度押し防止
+        if (this.dataset.pressed) return;
+        this.dataset.pressed = 'true';
+        handleKeyPress.call(this, { type: 'click', currentTarget: this, preventDefault: () => e.preventDefault() });
+        setTimeout(() => delete this.dataset.pressed, 150);
+      }, { passive: true });
+    });
+
+    // ダークモード切り替えに合わせて canvas の色合いを変える (matchMedia)
+    if (window.matchMedia) {
+      const mql = window.matchMedia('(prefers-color-scheme: dark)');
+      mql.addEventListener('change', (e) => {
+        const isNowDark = e.matches;
+        // 波紋の色は描画関数で参照しているので、global変数を更新
+        // 変わりに描画時に判定しているので大きな変更なし (renderWaves内でisDark参照)
+        // 強制的に背景をリセット
+        bgLighten = 0.1;
+        // 参考までにメッセージ更新
+        feedback.textContent = '色合いを更新しました';
+      });
+    }
+
+    // 初期メッセージ
+    setTimeout(() => {
+      feedback.textContent = '鍵盤を押して、気分を調律してみましょう';
+    }, 500);
+
+    // ページ可視時レンダリング維持
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        cancelAnimationFrame(animationFrame);
+        animationFrame = requestAnimationFrame(renderWaves);
+      }
+    });
+
+  } catch (err) {
+    // 致命的なエラーでも何か表示
+    const msg = document.createElement('p');
+    msg.textContent = 'ご利用のブラウザでは音や表示が一部動作しない可能性があります。';
+    msg.style.margin = '1em';
+    document.body.appendChild(msg);
+  }
+})();
+</script>
+</body>
+</html>
