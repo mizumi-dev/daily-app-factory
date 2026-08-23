@@ -76,18 +76,19 @@ Turnstile は現在テストキー（常に通過）。本番公開前に Cloudf
 ハウススタイル規約は [config/house-style.md](config/house-style.md) にあり、毎回の生成プロンプトの固定部分として使われる。
 モデル分担は、企画（spec 生成）が DeepSeek を含む複数 AI の並列企画 → DeepSeek V4-Pro 審査役の選定、実装（HTML 生成）が `deepseek-v4-flash`（非思考・コスト優先）を基本とし、**実装が2回検証に失敗した場合のみ最終試行を `deepseek-v4-pro`（非思考）にエスカレーション**する。ローカル生成は従来どおり `--model` / `--impl-model` で上書きできる。
 
-### 企画への複数 AI 参加
+### 企画への複数 AI 参加（DeepSeek + 1社の交代制）
 
-パイプラインの企画ステージは、キーが設定されている AI が並列で企画を出し、DeepSeek V4-Pro が審査役として採点して 1 案を選定する。
+パイプラインの企画ステージは、**DeepSeek と交代制で選ばれた 1 社（OpenAI → Claude → Gemini の順）** が並列で企画を出し、DeepSeek V4-Pro が審査役として採点して 1 案を選定する。どの AI なら安定して企画できるかを比較するための運用で、どのペアで作ったかはギャラリーのカードとダッシュボードに表示される。
 
 - 参加モデル（環境変数で上書き可）:
   - DeepSeek: `DEEPSEEK_API_KEY` / `DEEPSEEK_PLAN_MODEL`（既定 `deepseek-v4-pro`）
   - OpenAI: `OPENAI_API_KEY` / `OPENAI_PLAN_MODEL`（既定 `gpt-5-mini`）
   - Anthropic: `ANTHROPIC_API_KEY` / `ANTHROPIC_PLAN_MODEL`（既定 `claude-sonnet-5`）
   - Gemini: `GEMINI_API_KEY` / `GEMINI_PLAN_MODEL`（既定 `gemini-3.7-flash`）
-- キーがないプロバイダは自動スキップ。キーを足した分だけ並列参加する。
+- キーがないプロバイダは自動スキップ。その日の相手は有効なプロバイダの中から交代で選ばれる。
+- 手動実行で特定の相手を指定: `POST /_run` のボディに `"partner": "openai" | "anthropic" | "gemini"` を渡す。
 - 実装は従来どおり DeepSeek V4-Flash（2回検証失敗後は Pro へエスカレーション）。
-- どの AI の企画が採用されたかは runs の log に記録される（`/_status` で確認）。
+- 参加ペアと採用 AI は runs の log と apps テーブルに記録される（`/_status` とギャラリーで確認）。
 - ローカルは `workers/gallery/.dev.vars`、本番は `npx wrangler secret put <キー名> --config workers/gallery/wrangler.toml` で設定する。
 
 ハウススタイル規約の**基本は v2（試行版）**。v1 を使う場合はローカル生成 `--style v1`、パイプラインは `{"style":"v1"}` または環境変数 `HOUSE_STYLE_VERSION=v1`。v2 はブラウザ標準 API の許可・状態保存の拡張（URL hash / IndexedDB）・サイズ目安の緩和（15〜60KB）・演出の積極化が差分で、安全性の要（外部通信禁止・単一 HTML・200KB 上限）は維持。

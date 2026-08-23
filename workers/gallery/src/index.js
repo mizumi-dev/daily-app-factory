@@ -22,6 +22,7 @@ export default {
           const result = await runPipeline(env, null, {
             brief: body.brief || "",
             style: body.style === "v1" ? "v1" : "v2",
+            partner: body.partner || "",
           });
           return json(result);
         });

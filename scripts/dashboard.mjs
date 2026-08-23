@@ -58,6 +58,8 @@ function collectApps() {
       date: dateMatch ? dateMatch[1] : "",
       bytes: statSync(htmlPath).size,
       origin: spec.origin ?? "user",
+      planner: spec.planner ?? "",
+      adopted: spec.adopted_planner ?? "",
       feedbackOpen: (fb.match(/- \[ \]/g) || []).length,
       appPath: `../generated/${entry.name}/index.html`,
       feedbackPath: `../generated/${entry.name}/feedback.md`,
@@ -137,6 +139,8 @@ const SCRIPT = `<script>
   function saveReview(){ try { localStorage.setItem(REVIEW_KEY, JSON.stringify(review)); } catch(e){} }
   function esc(s){ return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
   function fmtBytes(n){ return n >= 1024 ? (n/1024).toFixed(1) + "KB" : n + "B"; }
+  var PLANNER_LABELS = { deepseek: "DeepSeek", openai: "OpenAI", anthropic: "Claude", gemini: "Gemini" };
+  function plannerLabel(pair){ return String(pair || "").split("+").map(function(id){ return PLANNER_LABELS[id] || id; }).join("+"); }
   function renderChips(){
     var html = "";
     Object.keys(AXIS_LABELS).forEach(function(a){
@@ -171,12 +175,13 @@ const SCRIPT = `<script>
     var color = AXIS_COLORS[a.axis] || "#999";
     var done = review[a.slug] ? " done" : "";
     var fb = a.feedbackOpen > 0 ? '<a class="fb-badge" href="' + esc(a.feedbackPath) + '" target="_blank" rel="noopener">意見 ' + a.feedbackOpen + '</a>' : "";
+    var plannerText = a.planner ? "企画: " + plannerLabel(a.planner) + (a.adopted ? "（" + plannerLabel(a.adopted) + "案採用）" : "") : "";
     return '<article class="card">' +
       '<div class="card-top"><span class="axis-badge" style="background:' + color + '">' + esc(AXIS_LABELS[a.axis] || a.axis) + '</span>' + fb + '</div>' +
       '<h2>' + esc(a.title) + '</h2>' +
       '<p class="tagline">' + esc(a.tagline) + '</p>' +
       '<div class="tags">' + a.tags.map(function(t){ return '<span class="tag">' + esc(t) + '</span>'; }).join("") + '</div>' +
-      '<div class="meta"><span>' + esc(a.date) + '</span><span>' + fmtBytes(a.bytes) + '</span><span>' + (a.origin === "auto" ? "自動" : "ユーザー投稿") + '</span></div>' +
+      '<div class="meta">' + (plannerText ? '<span>' + esc(plannerText) + '</span>' : "") + '<span>' + esc(a.date) + '</span><span>' + fmtBytes(a.bytes) + '</span><span>' + (a.origin === "auto" ? "自動" : "ユーザー投稿") + '</span></div>' +
       '<div class="card-actions">' +
         '<button class="btn" data-preview="' + esc(a.appPath) + '" data-title="' + esc(a.title) + '" type="button">プレビュー</button>' +
         '<a class="btn" href="' + esc(a.appPath) + '" target="_blank" rel="noopener">開く</a>' +
@@ -217,6 +222,7 @@ const SCRIPT = `<script>
       slug: a.slug, title: a.title, tagline: a.tagline || "", axis: a.axis || "",
       tags: a.tags || [], date: (a.published_at || "").slice(0, 10), bytes: a.bytes || 0,
       origin: a.origin || "auto", feedbackOpen: 0,
+      planner: a.planner || "", adopted: a.adopted_planner || "",
       appPath: LIVE_API.replace("/api/apps", "/app/") + a.slug,
       feedbackPath: ""
     };

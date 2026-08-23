@@ -20,6 +20,21 @@ export const AXIS_COLORS = {
   duo: "#ff7fc3",
 };
 
+export const PLANNER_LABELS = {
+  deepseek: "DeepSeek",
+  openai: "OpenAI",
+  anthropic: "Claude",
+  gemini: "Gemini",
+};
+
+export function plannerLabel(pair) {
+  if (!pair) return "";
+  return String(pair)
+    .split("+")
+    .map((id) => PLANNER_LABELS[id] || id)
+    .join("+");
+}
+
 const SORTS = {
   new: "published_at DESC",
   old: "published_at ASC",
@@ -78,7 +93,7 @@ export async function listApps(env, opts = {}) {
     .first();
   const total = totalRow ? Number(totalRow.c) : 0;
   const rows = await env.DB.prepare(
-    `SELECT slug, title, tagline, description, axis, origin, published_at, bytes, views, reactions
+    `SELECT slug, title, tagline, description, axis, origin, published_at, bytes, views, reactions, planner, adopted_planner
      FROM apps WHERE ${whereSql} ORDER BY ${orderBy} LIMIT ? OFFSET ?`
   )
     .bind(...params, perPage, (page - 1) * perPage)
@@ -104,7 +119,7 @@ export async function listApps(env, opts = {}) {
 
 export async function getApp(env, slug) {
   const row = await env.DB.prepare(
-    `SELECT slug, title, tagline, description, axis, origin, published_at, bytes, views, reactions
+    `SELECT slug, title, tagline, description, axis, origin, published_at, bytes, views, reactions, planner, adopted_planner
      FROM apps WHERE slug = ? AND status = 'live'`
   )
     .bind(slug)
