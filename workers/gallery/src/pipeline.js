@@ -214,6 +214,8 @@ export async function runPipeline(env, ctx, opts = {}) {
   // 1) 起動: 実行ロック
   const lockKey = `lock:${date}`;
   if (!opts.brief && (await env.CACHE.get(lockKey))) {
+    const runId = await recordRunStart(env, { started, axis, directive: {} });
+    await finishRun(env, runId, { outcome: "skipped", log: { reason: "already-run" } });
     return { skipped: "already-run" };
   }
   await env.CACHE.put(lockKey, "1", { expirationTtl: 90000 });

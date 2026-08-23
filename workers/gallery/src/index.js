@@ -147,7 +147,11 @@ async function appsJson(request, env, url) {
 
 function json(data) {
   return new Response(JSON.stringify(data), {
-    headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "public, max-age=60" },
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+      "Cache-Control": "public, max-age=60",
+      "Access-Control-Allow-Origin": "*",
+    },
   });
 }
 
