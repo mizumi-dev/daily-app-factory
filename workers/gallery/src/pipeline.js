@@ -811,11 +811,12 @@ export async function runPipeline(env, ctx, opts = {}) {
 }
 
 export async function statusReport(env) {
-  const [paused, cronDisabled, runs, signalCount] = await Promise.all([
+  const [paused, cronDisabled, runs, signalCount, lastCollectRaw] = await Promise.all([
     env.CACHE.get("paused"),
     env.CACHE.get("cronDisabled"),
     env.DB.prepare("SELECT id, started_at, axis, outcome, cost_usd, stage_failed, log FROM runs ORDER BY id DESC LIMIT 10").all(),
     env.DB.prepare("SELECT COUNT(*) AS c FROM signals").first(),
+    env.CACHE.get("signals:last"),
   ]);
   const lastRuns = runs.results.map((r) => {
     let planner = null;
@@ -831,11 +832,18 @@ export async function statusReport(env) {
     }
     return { ...r, planner, adopted };
   });
+  let lastCollect = null;
+  try {
+    lastCollect = lastCollectRaw ? JSON.parse(lastCollectRaw) : null;
+  } catch {
+    // 壊れていてもステータス表示は継続する
+  }
   return {
     paused: paused === "true",
     cronDisabled: cronDisabled === "true",
     lastRuns,
     signals: Number(signalCount?.c || 0),
+    lastCollect,
   };
 }
 

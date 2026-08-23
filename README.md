@@ -74,7 +74,7 @@ Turnstile は現在テストキー（常に通過）。本番公開前に Cloudf
 3. `generated/YYYY-MM-DD-<slug>/index.html` をブラウザで開き、検証チェックリスト（AGENTS.md 参照）を目視確認する。
 
 ハウススタイル規約は [config/house-style.md](config/house-style.md) にあり、毎回の生成プロンプトの固定部分として使われる。
-モデル分担は、企画（spec 生成）が DeepSeek を含む複数 AI の並列企画 → DeepSeek V4-Pro 審査役の選定、実装（HTML 生成）が `deepseek-v4-flash`（非思考・コスト優先）を基本とし、**実装が2回検証に失敗した場合のみ最終試行を `deepseek-v4-pro`（非思考）にエスカレーション**する。ローカル生成は従来どおり `--model` / `--impl-model` で上書きできる。
+モデル分担は、企画（spec 生成）が DeepSeek を含む複数 AI の会議（お題決定 → 提案 → 相互レビュー → 修正）→ DeepSeek V4-Pro 審査役の選定、実装（HTML 生成）が `deepseek-v4-flash`（非思考・コスト優先）を基本とし、**実装が2回検証に失敗した場合のみ最終試行を `deepseek-v4-pro`（非思考）にエスカレーション**する。ローカル生成は従来どおり `--model` / `--impl-model` で上書きできる。
 
 ### 企画会議（お題決定 → 提案 → 相互レビュー → 修正 → 審査）
 
@@ -97,6 +97,20 @@ Turnstile は現在テストキー（常に通過）。本番公開前に Cloudf
 - 手動実行で特定の相手を指定: `POST /_run` のボディに `"partner": "openai" | "anthropic" | "gemini"` を渡す。
 - 実装は従来どおり DeepSeek V4-Flash（2回検証失敗後は Pro へエスカレーション）。
 - ローカルは `workers/gallery/.dev.vars`、本番は `npx wrangler secret put <キー名> --config workers/gallery/wrangler.toml` で設定する。
+
+### 市場調査（欲求シグナルの収集）
+
+毎朝 02:00 JST に自動実行され、以下の情報源から「〜がない」「誰か作って」「毎回面倒」のような欲求を DeepSeek V4-Pro が抽出して D1 に貯める。生成時はスコア順に未使用のシグナルを 1 件選び、お題会議でどう料理するかを AI 同士が議論する。
+
+- Hacker News（Show HN） / Reddit（r/SomebodyMakeThis・r/Lightbulb） / Google Trends（日本） / Zenn
+- X（公式 API v2。`X_BEARER_TOKEN` 設定時のみ・X の有償プランが必要）
+- note.com（ユーザーRSS。`NOTE_USERS` でカスタマイズ可・既定は 6 アカウント）
+- Product Hunt（公式フィード）
+
+- 抽出は Pro（思考モード）。「単一 HTML で作れる範囲・複数投稿に共通するニーズ」を優先し、医療/法律/投資は除外
+- 情報源ごとの信頼度ウェイトでスコア補正（Reddit / X の「作って」系を高く、Trends / Zenn の話題系を低く）
+- URL 重複は自動スキップ。抽出が空のときは生テキストを低スコアでフォールバック保存
+- 収集結果とコストは `/_status` の `lastCollect` で確認できる
 
 ハウススタイル規約の**基本は v2（試行版）**。v1 / v3 は明示指定時のみ使われる（ローカル生成 `--style v1|v3`、パイプラインは `{"style":"v1"|"v3"}` または環境変数 `HOUSE_STYLE_VERSION=v1|v3`）。v2 はブラウザ標準 API の許可・状態保存の拡張（URL hash / IndexedDB）・サイズ目安の緩和（15〜60KB）・演出の積極化が差分。v3 はさらに初回起動時の空状態対策・アクセシビリティ強化（WCAG AA・可視フォーカス・44px タップ領域・スキップリンク）・状態保存の透明性（保存先の明示・リセット・エクスポート/インポート）・権限 API の明示操作起点・音声の自動再生禁止・`eval` 等の動的コード実行禁止を追加。安全性の要（外部通信禁止・単一 HTML・200KB 上限・医療/法律/投資の禁止）は全バージョンで維持。
 

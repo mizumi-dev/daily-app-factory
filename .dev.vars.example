@@ -10,5 +10,10 @@ GEMINI_API_KEY=AIzaSyxxxxxxxxxxxxxxxx
 # OPENAI_PLAN_MODEL=
 # ANTHROPIC_PLAN_MODEL=
 # GEMINI_PLAN_MODEL=
+# 市場調査の追加ソース（任意）
+# X API v2 のベアラートークン（X の有償プランが必要。未設定なら X 収集はスキップ）
+X_BEARER_TOKEN=
+# note.com のユーザーRSS（カンマ区切り。未設定時は既定の6アカウント）
+NOTE_USERS=
 # 通知先（Phase 2 で使用）
 NOTIFY_WEBHOOK_URL=
