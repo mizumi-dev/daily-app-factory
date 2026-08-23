@@ -1,5 +1,5 @@
 // ギャラリーの SSR レンダリング
-import { AXIS_LABELS, AXIS_COLORS } from "./store.js";
+import { AXIS_LABELS, AXIS_COLORS, plannerLabel } from "./store.js";
 
 function esc(s) {
   return String(s == null ? "" : s)
@@ -26,6 +26,9 @@ function buildQuery(params) {
 
 function card(app) {
   const color = AXIS_COLORS[app.axis] || "#999";
+  const plannerText = app.planner
+    ? `企画: ${plannerLabel(app.planner)}${app.adopted_planner ? `（${plannerLabel(app.adopted_planner)}案採用）` : ""}`
+    : "";
   return `<article class="card">
     <a class="thumb" href="/app/${esc(app.slug)}" target="_blank" rel="noopener">
       <img src="/app/${esc(app.slug)}/thumb.svg" alt="${esc(app.title)}のサムネイル" loading="lazy" width="600" height="315">
@@ -38,7 +41,7 @@ function card(app) {
       <h2><a href="/app/${esc(app.slug)}" target="_blank" rel="noopener">${esc(app.title)}</a></h2>
       <p class="tagline">${esc(app.tagline)}</p>
       <div class="tags">${app.tags.slice(0, 3).map((t) => `<a class="tag" href="/?tag=${esc(encodeURIComponent(t))}">${esc(t)}</a>`).join("")}</div>
-      <div class="meta"><span>${esc(app.published_at.slice(0, 10))}</span><span>${fmtBytes(app.bytes)}</span></div>
+      <div class="meta">${plannerText ? `<span>${esc(plannerText)}</span>` : ""}<span>${esc(app.published_at.slice(0, 10))}</span><span>${fmtBytes(app.bytes)}</span></div>
     </div>
   </article>`;
 }

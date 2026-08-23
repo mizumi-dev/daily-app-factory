@@ -5,24 +5,28 @@ import { chat } from "./deepseek.js";
 const PLANNERS = [
   {
     id: "deepseek",
+    label: "DeepSeek",
     key: (env) => env.DEEPSEEK_API_KEY,
     model: (env) => env.DEEPSEEK_PLAN_MODEL || "deepseek-v4-pro",
     pricing: { in: 0.66, out: 1.98 },
   },
   {
     id: "openai",
+    label: "OpenAI",
     key: (env) => env.OPENAI_API_KEY,
     model: (env) => env.OPENAI_PLAN_MODEL || "gpt-5-mini",
     pricing: { in: 0.25, out: 2.0 },
   },
   {
     id: "anthropic",
+    label: "Claude",
     key: (env) => env.ANTHROPIC_API_KEY,
     model: (env) => env.ANTHROPIC_PLAN_MODEL || "claude-sonnet-5",
     pricing: { in: 2.0, out: 10.0 },
   },
   {
     id: "gemini",
+    label: "Gemini",
     key: (env) => env.GEMINI_API_KEY,
     model: (env) => env.GEMINI_PLAN_MODEL || "gemini-3.7-flash",
     pricing: { in: 0.75, out: 3.75 },
