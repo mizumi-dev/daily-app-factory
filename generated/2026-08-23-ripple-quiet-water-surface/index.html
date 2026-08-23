@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>水面のさざなみ — 波紋シミュレーター</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0e1e1e;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      touch-action: none; /* タッチスクロールはCanvas上で禁止 */
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    .app-container {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    canvas#water-canvas {
+      width: 100%;
+      height: auto;
+      aspect-ratio: 16 / 10;
+      display: block;
+      background: linear-gradient(180deg, #1a2e3a, #0a171c);
+      border-radius: 24px;
+      box-shadow: 0 15px 30px rgba(0,0,0,0.7), inset 0 0 20px rgba(255,255,255,0.05);
+      cursor: crosshair;
+      touch-action: none;
+      transition: filter 0.2s ease;
+    }
+    canvas#water-canvas:active {
+      filter: brightness(1.04);
+    }
+    .control-bar {
+      background: rgba(20, 40, 45, 0.8);
+      backdrop-filter: blur(6px);
+      border-radius: 40px;
+      padding: 12px 20px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 15px 20px;
+      color: #cfe2e0;
+      border: 1px solid rgba(120, 190, 180, 0.25);
+      box-shadow: 0 6px 14px rgba(0,0,0,0.5);
+      font-size: 0.9rem;
+    }
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .rain-btn {
+      background: #1e4040;
+      border: 1px solid #3c8f86;
+      color: #e0f3f0;
+      padding: 8px 16px;
+      border-radius: 40px;
+      letter-spacing: 0.03em;
+      font-weight: 500;
+      cursor: pointer;
+      transition: 0.2s;
+      box-shadow: inset 0 0 8px rgba(0,0,0,0.3);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .rain-btn:hover {
+      background: #2d5a57;
+      border-color: #67c5b8;
+      transform: scale(1.02);
+    }
+    .rain-btn.active {
+      background: #3e7d72;
+      box-shadow: 0 0 10px #5bc0b0;
+    }
+    .icon-drop {
+      font-size: 1.2rem;
+      line-height: 1;
+    }
+    input[type="range"] {
+      width: 120px;
+      cursor: pointer;
+      background: #152e2c;
+      height: 4px;
+      border-radius: 10px;
+      accent-color: #6ecfc0;
+    }
+    .slider-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #a9c7c2;
+      font-size: 0.8rem;
+    }
+    .sound-toggle {
+      background: none;
+      border: 1px solid #32635c;
+      color: #aacfc6;
+      border-radius: 30px;
+      padding: 6px 12px;
+      font-size: 0.8rem;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+    }
+    .footer-tag {
+      text-align: center;
+      color: #5f7d78;
+      font-size: 0.7rem;
+      padding: 6px 0 2px;
+      letter-spacing: 0.02em;
+    }
+    .legend {
+      font-size: 0.7rem;
+      color: #60837c;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .muted-icon {
+      opacity: 0.6;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <!-- 水面キャンバス -->
+    <canvas id="water-canvas" width="960" height="600"></canvas>
+
+    <!-- 操作UI -->
+    <div class="control-bar">
+      <div class="control-group">
+        <button id="rainToggle" class="rain-btn" aria-label="雨粒モードを切り替え">
+          <span class="icon-drop">💧</span> 雨粒
+        </button>
+        <button id="soundToggle" class="sound-toggle" aria-label="サウンドのオンオフ">
+          <span id="soundIcon">🔊</span> <span id="soundLabel">音</span>
+        </button>
+        <span class="legend">🖱️ / 指で触れると波紋</span>
+      </div>
+      <div class="control-group">
+        <div class="slider-label">
+          <span>波の強さ</span>
+          <input type="range" id="strengthSlider" min="20" max="180" value="100" aria-label="波の強さ">
+        </div>
+        <div class="slider-label">
+          <span>減衰</span>
+          <input type="range" id="dampingSlider" min="50" max="180" value="100" aria-label="波の減衰">
+        </div>
+        <div class="slider-label">
+          <span>色温度</span>
+          <input type="range" id="warmthSlider" min="0" max="100" value="35" aria-label="色温度">
+        </div>
+      </div>
+    </div>
+    <div class="footer-tag">
+      生成日: 2026-08-23 / お題の出所: ユーザー投稿 — さわる水面アート
+    </div>
+  </div>
+
+  <script>
+  (function() {
+    'use strict';
+    try {
+      // ===== 基本セットアップ =====
+      const canvas = document.getElementById('water-canvas');
+      const ctx = canvas.getContext('2d');
+
+      // シミュレーション解像度（高さ場）
+      const COLS = 180;  // グリッド幅
+      const ROWS = 112;  // グリッド高さ (16:10)
+      const cellW = canvas.width / COLS;
+      const cellH = canvas.height / ROWS;
+
+      // 高さ場（現在と前の二重バッファ）
+      let h1 = new Float32Array(COLS * ROWS);
+      let h2 = new Float32Array(COLS * ROWS);
+      // 速度/補助 (波の伝播用)
+      let vel = new Float32Array(COLS * ROWS);
+
+      // スライダー値
+      let strengthMul = 1.0;   // 強さ
+      let dampingVal = 1.0;    // 減衰（大きいほど減衰少ない）
+      let colorTemp = 35;      // 0 .. 100
+
+      // 雨モード
+      let rainMode = false;
+      let rainTimer = 0;
+      // 音
+      let audioCtx = null;
+      let muted = false;
+      let soundEnabled = true;
+
+      // UI要素
+      const strengthSlider = document.getElementById('strengthSlider');
+      const dampingSlider = document.getElementById('dampingSlider');
+      const warmSlider = document.getElementById('warmthSlider');
+      const rainBtn = document.getElementById('rainToggle');
+      const soundBtn = document.getElementById('soundToggle');
+      const soundIcon = document.getElementById('soundIcon');
+      const soundLabel = document.getElementById('soundLabel');
+
+      // ===== 色計算パレット (水面のグラデ用) 色温度で補間 =====
+      function getWaterColor(warm = 0.35) {
+        // warm 0: 冷たい青, 1: 夕焼け風 
+        const r = 25 + warm * 35;
+        const g = 38 + warm * 22;
+        const b = 42 + warm * 8;
+        return { r: Math.floor(r), g: Math.floor(g), b: Math.floor(b) };
+      }
+
+      // ===== 波紋の生成 =====
+      function addDrop(cxN, cyN, strength = 1.0) {
+        // 正規化座標(0-1) をグリッドへ
+        const col = Math.floor(cxN * COLS);
+        const row = Math.floor(cyN * ROWS);
+        const r = 2.5 * strength; // 半径(グリッドセル単位)
+        const radius = Math.max(1, Math.min(6, r * 1.2));
+        const sx = Math.max(0, col - 3);
+        const ex = Math.min(COLS-1, col + 3);
+        const sy = Math.max(0, row - 3);
+        const ey = Math.min(ROWS-1, row + 3);
+        const amp = 0.6 * strength;
+        for (let y = sy; y <= ey; y++) {
+          for (let x = sx; x <= ex; x++) {
+            const dist = Math.hypot(x - col, y - row);
+            if (dist <= 3.0) {
+              const fall = Math.exp(-dist * 1.5);
+              h1[y * COLS + x] += amp * fall * Math.sin(dist * 2.0);
+            }
+          }
+        }
+      }
+
+      // 複数水滴（雨）
+      function randomRainDrop() {
+        const x = Math.random();
+        const y = Math.random() * 0.9 + 0.02;
+        const strength = 0.4 + Math.random() * 0.5;
+        addDrop(x, y, strength);
+      }
+
+      // ===== 物理シミュレーションステップ（波の伝播） =====
+      function stepSimulation() {
+        const dampingFactor = (0.96 + 0.03 * dampingVal); // 0.98~0.99※減衰スライダで減衰度変更
+        const rate = 0.1 * strengthMul;
+        for (let y = 1; y < ROWS-1; y++) {
+          const rowOffset = y * COLS;
+          for (let x = 1; x < COLS-1; x++) {
+            const idx = rowOffset + x;
+            // ラプラシアン近似
+            const neighbor = h1[idx-1] + h1[idx+1] + h1[idx-COLS] + h1[idx+COLS];
+            const laplacian = (neighbor * 0.25 - h1[idx]) * 1.8;
+            // 速度更新
+            vel[idx] += laplacian * 0.19 * rate;
+            // 減衰
+            vel[idx] *= dampingFactor;
+          }
+        }
+        // 位置更新 (h2 = 前の波, h1が現在)
+        for (let i = 0; i < COLS*ROWS; i++) {
+          const newVal = h1[i] + vel[i];
+          h2[i] = newVal;
+          // 微小クリップ
+          if (Math.abs(newVal) > 3.0) h2[i] = Math.sign(newVal) * 3.0;
+        }
+        // swap (h1を新しい状態に、h2は古い)
+        [h1, h2] = [h2, h1];
+        // 境界を滑らかに減衰
+        for (let x = 0; x < COLS; x++) {
+          h1[x] *= 0.98;
+          h1[(ROWS-1)*COLS + x] *= 0.98;
+        }
+        for (let y = 0; y < ROWS; y++) {
+          h1[y*COLS] *= 0.98;
+          h1[y*COLS + COLS-1] *= 0.98;
+        }
+      }
+
+      // ===== 描画 (波の干渉を光で表現) =====
+      const imgData = ctx.createImageData(canvas.width, canvas.height);
+      const data = imgData.data;
+
+      function paint() {
+        const w = canvas.width, h = canvas.height;
+        // 色温度変換
+        const tempNorm = colorTemp / 100.0;
+        const baseR = 14 + tempNorm * 12;
+        const baseG = 28 + tempNorm * 18;
+        const baseB = 34 + tempNorm * 4;
+        const highlightR = 172 + tempNorm * 40;
+        const highlightG = 188 + tempNorm * 30;
+        const highlightB = 190 + tempNorm * 10;
+
+        // ピクセルごとに法線っぽい勾配で明るさを出す
+        for (let py = 0; py < h; py++) {
+          const gy = py / cellH;
+          const y0 = Math.floor(gy);
+          const y1 = Math.min(ROWS-1, y0 + 1);
+          const fy = gy - y0;
+          for (let px = 0; px < w; px++) {
+            const gx = px / cellW;
+            const x0 = Math.floor(gx);
+            const x1 = Math.min(COLS-1, x0 + 1);
+            const fx = gx - x0;
+
+            // 双線形補間で高さを取得
+            const idx00 = y0 * COLS + x0, idx01 = y0 * COLS + x1;
+            const idx10 = y1 * COLS + x0, idx11 = y1 * COLS + x1;
+            const h00 = h1[idx00], h01 = h1[idx01];
+            const h10 = h1[idx10], h11 = h1[idx11];
+            const hInterp = h00*(1-fx)*(1-fy) + h01*fx*(1-fy) + h10*(1-fx)*fy + h11*fx*fy;
+
+            // 勾配 (偽の法線)
+            const gradX = (h1[y0*COLS + Math.min(COLS-1, x0+1)] - h1[y0*COLS + Math.max(0, x0-1)]);
+            const gradY = (h1[Math.min(ROWS-1, y0+1)*COLS + x0] - h1[Math.max(0, y0-1)*COLS + x0]);
+            const nz = 1.0 - Math.abs(hInterp) * 0.8;
+            let luminance = (gradX*gradX*50 + gradY*gradY*35 + hInterp * hInterp * 20) * 0.7;
+
+            // 波紋のエッジを白く
+            luminance = Math.min(1.6, luminance);
+            const wave = Math.sin(gx * 7 + gy * 9); // うっすらテクスチャ
+
+            // 色合い (波の高さで色をシフト)
+            let r = baseR + luminance * 120 + hInterp * 40 + wave * 2;
+            let g = baseG + luminance * 150 + hInterp * 20 + wave * 3;
+            let b = baseB + luminance * 160 + hInterp * 10;
+
+            r = Math.min(255, Math.max(0, r));
+            g = Math.min(255, Math.max(0, g));
+            b = Math.min(255, Math.max(0, b));
+
+            // 波の峰は青白く
+            const idxPixel = (py * w + px) * 4;
+            data[idxPixel] = r;
+            data[idxPixel+1] = g;
+            data[idxPixel+2] = b;
+            data[idxPixel+3] = 255;
+          }
+        }
+        ctx.putImageData(imgData, 0, 0);
+      }
+
+      // ===== サウンド関連 =====
+      function initAudio() {
+        if (!audioCtx) {
+          try {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          } catch(e) { audioCtx = null; }
+        }
+        if (audioCtx && audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+      }
+
+      function playRippleSound() {
+        if (muted || !soundEnabled || !audioCtx) return;
+        if (!audioCtx || audioCtx.state !== 'running') return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = 380 + Math.random() * 220;
+        osc.frequency.exponentialRampToValueAtTime(150 + Math.random()*80, audioCtx.currentTime + 0.12);
+        gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.18);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.2);
+      }
+
+      // ===== アニメーションループ =====
+      function animate() {
+        // 雨モード生成
+        if (rainMode) {
+          rainTimer--;
+          if (rainTimer <= 0) {
+            randomRainDrop();
+            rainTimer = 3 + Math.floor(Math.random() * 12);
+            // たまに小さな音
+            if (Math.random() > 0.5) playRippleSound();
+          }
+        }
+        // 物理 & 描画
+        for (let sub = 0; sub < 2; sub++) stepSimulation();
+        paint();
+        requestAnimationFrame(animate);
+      }
+
+      // ===== 操作イベント =====
+      function handleRipple(xNorm, yNorm) {
+        addDrop(xNorm, yNorm, strengthMul);
+        if (!muted) playRippleSound();
+      }
+
+      // マウス / タッチ共通
+      function eventPos(clientX, clientY) {
+        const rect = canvas.getBoundingClientRect();
+        const x = (clientX - rect.left) / rect.width;
+        const y = (clientY - rect.top) / rect.height;
+        return { x: Math.min(1, Math.max(0, x)), y: Math.min(1, Math.max(0, y)) };
+      }
+
+      canvas.addEventListener('mousemove', (e) => {
+        if (e.buttons === 1) {
+          const p = eventPos(e.clientX, e.clientY);
+          handleRipple(p.x, p.y);
+        }
+      });
+      canvas.addEventListener('click', (e) => {
+        const p = eventPos(e.clientX, e.clientY);
+        handleRipple(p.x, p.y);
+      });
+
+      // タッチ
+      canvas.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        for (let i=0; i<e.touches.length; i++) {
+          const t = e.touches[i];
+          const p = eventPos(t.clientX, t.clientY);
+          handleRipple(p.x, p.y);
+        }
+      }, { passive: false });
+      canvas.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        initAudio();
+        for (let i=0; i<e.touches.length; i++) {
+          const t = e.touches[i];
+          const p = eventPos(t.clientX, t.clientY);
+          handleRipple(p.x, p.y);
+        }
+      }, { passive: false });
+
+      // スライダー
+      strengthSlider.addEventListener('input', (e) => {
+        strengthMul = e.target.value / 100;
+      });
+      dampingSlider.addEventListener('input', (e) => {
+        dampingVal = e.target.value / 100; // 0.5-1.8
+      });
+      warmSlider.addEventListener('input', (e) => {
+        colorTemp = Number(e.target.value);
+      });
+
+      // 雨トグル
+      rainBtn.addEventListener('click', () => {
+        rainMode = !rainMode;
+        rainBtn.classList.toggle('active', rainMode);
+        rainBtn.innerHTML = rainMode ? '🌧️ 雨止み' : '💧 雨粒';
+        if (rainMode) {
+          rainTimer = 0;
+          initAudio();
+        }
+      });
+
+      // サウンド
+      soundBtn.addEventListener('click', () => {
+        muted = !muted;
+        soundIcon.textContent = muted ? '🔇' : '🔊';
+        soundLabel.textContent = muted ? '消音' : '音';
+        if (!muted) initAudio();
+      });
+
+      // ===== 初期化 =====
+      function init() {
+        // スライダー初期読み込み
+        strengthMul = strengthSlider.value / 100;
+        dampingVal = dampingSlider.value / 100;
+        colorTemp = warmSlider.value;
+        // 初期に数滴波紋を落とす
+        addDrop(0.3, 0.4, 1.2);
+        addDrop(0.7, 0.6, 0.9);
+        for (let i=0; i<4; i++) randomRainDrop();
+
+        // アニメーション開始
+        requestAnimationFrame(animate);
+        // リサイズ崩れ防止
+        window.addEventListener('resize', () => {
+          // キャンバスはCSSで伸縮するが、解像度は固定のまま動作
+        });
+        // 音初期化は初回タッチに設定され、無理にコンテキストは作らない
+      }
+
+      init();
+    } catch (err) {
+      console.warn('水面シミュレーション初期化に失敗しました:', err);
+      const canvas = document.getElementById('water-canvas');
+      if (canvas) {
+        canvas.style.background = 'linear-gradient(145deg, #102a2e, #071517)';
+      }
+    }
+  })();
+  </script>
+</body>
+</html>
