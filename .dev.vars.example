@@ -1,5 +1,14 @@
 # このファイルを .dev.vars にコピーして値を埋める（.dev.vars はコミットしない）
 # DeepSeek API キー: https://platform.deepseek.com で取得
 DEEPSEEK_API_KEY=sk-xxxxxxxxxxxxxxxx
+# 企画ステージへ参加する追加 AI（任意・設定した分だけ並列参加）
+OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxx
+ANTHROPIC_API_KEY=sk-ant-xxxxxxxxxxxxxxxx
+GEMINI_API_KEY=AIzaSyxxxxxxxxxxxxxxxx
+# 企画モデルの上書き（省略時は既定モデル: deepseek-v4-pro / gpt-5-mini / claude-sonnet-5 / gemini-3.7-flash）
+# DEEPSEEK_PLAN_MODEL=
+# OPENAI_PLAN_MODEL=
+# ANTHROPIC_PLAN_MODEL=
+# GEMINI_PLAN_MODEL=
 # 通知先（Phase 2 で使用）
 NOTIFY_WEBHOOK_URL=
