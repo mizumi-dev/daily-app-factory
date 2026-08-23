@@ -31,3 +31,5 @@ crons = ["0 17 * * *", "0 19 * * *"]
 [vars]
 # Turnstile ウィジェット（invisible / daily-app-factory）のサイトキー
 TURNSTILE_SITE_KEY = "0x4AAAAAAEYh5En7DxyNUzKo"
+# ハウススタイル規約の本番既定（v2 = 緩め / v3 = 厳しめ）。v3 は明示指定時のみ使用
+HOUSE_STYLE_VERSION = "v2"
