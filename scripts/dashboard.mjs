@@ -60,6 +60,7 @@ function collectApps() {
       origin: spec.origin ?? "user",
       planner: spec.planner ?? "",
       adopted: spec.adopted_planner ?? "",
+      hasMinutes: false,
       feedbackOpen: (fb.match(/- \[ \]/g) || []).length,
       appPath: `../generated/${entry.name}/index.html`,
       feedbackPath: `../generated/${entry.name}/feedback.md`,
@@ -175,9 +176,10 @@ const SCRIPT = `<script>
     var color = AXIS_COLORS[a.axis] || "#999";
     var done = review[a.slug] ? " done" : "";
     var fb = a.feedbackOpen > 0 ? '<a class="fb-badge" href="' + esc(a.feedbackPath) + '" target="_blank" rel="noopener">意見 ' + a.feedbackOpen + '</a>' : "";
+    var minutes = a.hasMinutes ? '<a class="fb-badge" href="' + esc(a.appPath) + '/minutes.md" target="_blank" rel="noopener">議事録</a>' : "";
     var plannerText = a.planner ? "企画: " + plannerLabel(a.planner) + (a.adopted ? "（" + plannerLabel(a.adopted) + "案採用）" : "") : "";
     return '<article class="card">' +
-      '<div class="card-top"><span class="axis-badge" style="background:' + color + '">' + esc(AXIS_LABELS[a.axis] || a.axis) + '</span>' + fb + '</div>' +
+      '<div class="card-top"><span class="axis-badge" style="background:' + color + '">' + esc(AXIS_LABELS[a.axis] || a.axis) + '</span>' + fb + minutes + '</div>' +
       '<h2>' + esc(a.title) + '</h2>' +
       '<p class="tagline">' + esc(a.tagline) + '</p>' +
       '<div class="tags">' + a.tags.map(function(t){ return '<span class="tag">' + esc(t) + '</span>'; }).join("") + '</div>' +
@@ -223,6 +225,7 @@ const SCRIPT = `<script>
       tags: a.tags || [], date: (a.published_at || "").slice(0, 10), bytes: a.bytes || 0,
       origin: a.origin || "auto", feedbackOpen: 0,
       planner: a.planner || "", adopted: a.adopted_planner || "",
+      hasMinutes: !!a.has_minutes,
       appPath: LIVE_API.replace("/api/apps", "/app/") + a.slug,
       feedbackPath: ""
     };

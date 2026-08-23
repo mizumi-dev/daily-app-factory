@@ -29,6 +29,7 @@ function card(app) {
   const plannerText = app.planner
     ? `企画: ${plannerLabel(app.planner)}${app.adopted_planner ? `（${plannerLabel(app.adopted_planner)}案採用）` : ""}`
     : "";
+  const minutesLink = app.has_minutes ? `<a class="minutes" href="/app/${esc(app.slug)}/minutes.md">議事録</a>` : "";
   return `<article class="card">
     <a class="thumb" href="/app/${esc(app.slug)}" target="_blank" rel="noopener">
       <img src="/app/${esc(app.slug)}/thumb.svg" alt="${esc(app.title)}のサムネイル" loading="lazy" width="600" height="315">
@@ -41,7 +42,7 @@ function card(app) {
       <h2><a href="/app/${esc(app.slug)}" target="_blank" rel="noopener">${esc(app.title)}</a></h2>
       <p class="tagline">${esc(app.tagline)}</p>
       <div class="tags">${app.tags.slice(0, 3).map((t) => `<a class="tag" href="/?tag=${esc(encodeURIComponent(t))}">${esc(t)}</a>`).join("")}</div>
-      <div class="meta">${plannerText ? `<span>${esc(plannerText)}</span>` : ""}<span>${esc(app.published_at.slice(0, 10))}</span><span>${fmtBytes(app.bytes)}</span></div>
+      <div class="meta">${minutesLink}${plannerText ? `<span>${esc(plannerText)}</span>` : ""}<span>${esc(app.published_at.slice(0, 10))}</span><span>${fmtBytes(app.bytes)}</span></div>
     </div>
   </article>`;
 }
@@ -123,6 +124,7 @@ h2{font-size:1.02rem;line-height:1.4}h2 a{color:inherit;text-decoration:none}h2 
 .tagline{color:var(--text-soft);font-size:0.85rem;min-height:2.6em}
 .tags{display:flex;flex-wrap:wrap;gap:5px}.tag{font-size:0.72rem;color:var(--text-soft);background:var(--bg-soft);border:1px solid var(--border);border-radius:999px;padding:2px 9px;text-decoration:none}.tag:hover{color:var(--accent)}
 .meta{display:flex;gap:8px;font-size:0.75rem;color:var(--text-soft);margin-top:auto}
+.meta a{color:var(--accent);text-decoration:none}.meta a:hover{text-decoration:underline}
 .empty{text-align:center;color:var(--text-soft);padding:48px 0}
 .pager{display:flex;justify-content:center;gap:14px;margin-top:22px}
 .pager a{color:var(--accent);text-decoration:none;border:1px solid var(--border);border-radius:999px;padding:7px 18px}

@@ -93,7 +93,7 @@ export async function listApps(env, opts = {}) {
     .first();
   const total = totalRow ? Number(totalRow.c) : 0;
   const rows = await env.DB.prepare(
-    `SELECT slug, title, tagline, description, axis, origin, published_at, bytes, views, reactions, planner, adopted_planner
+    `SELECT slug, title, tagline, description, axis, origin, published_at, bytes, views, reactions, planner, adopted_planner, has_minutes
      FROM apps WHERE ${whereSql} ORDER BY ${orderBy} LIMIT ? OFFSET ?`
   )
     .bind(...params, perPage, (page - 1) * perPage)
@@ -119,7 +119,7 @@ export async function listApps(env, opts = {}) {
 
 export async function getApp(env, slug) {
   const row = await env.DB.prepare(
-    `SELECT slug, title, tagline, description, axis, origin, published_at, bytes, views, reactions, planner, adopted_planner
+    `SELECT slug, title, tagline, description, axis, origin, published_at, bytes, views, reactions, planner, adopted_planner, has_minutes
      FROM apps WHERE slug = ? AND status = 'live'`
   )
     .bind(slug)

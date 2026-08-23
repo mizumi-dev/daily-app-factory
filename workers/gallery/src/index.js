@@ -21,7 +21,7 @@ export default {
           const body = await request.json().catch(() => ({}));
           const result = await runPipeline(env, null, {
             brief: body.brief || "",
-            style: body.style === "v1" ? "v1" : "v2",
+            style: ["v1", "v2", "v3"].includes(body.style) ? body.style : "v2",
             partner: body.partner || "",
           });
           return json(result);
@@ -47,6 +47,8 @@ export default {
       }
       if (pathname === "/" || pathname === "/index.html") return galleryPage(request, env, url);
       if (pathname === "/api/apps") return appsJson(request, env, url);
+      const minutesMatch = pathname.match(/^\/app\/([a-z0-9-]+)\/minutes\.md$/);
+      if (minutesMatch) return minutesRoute(env, minutesMatch[1]);
       if (pathname.startsWith("/app/")) return appRoute(env, pathname);
       if (pathname === "/sitemap.xml") return sitemap(request, env, url);
       if (pathname === "/feed.xml") return feed(request, env, url);
@@ -187,6 +189,20 @@ async function appRoute(env, pathname) {
         "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'",
       "X-Content-Type-Options": "nosniff",
       "Referrer-Policy": "no-referrer",
+    },
+  });
+}
+
+async function minutesRoute(env, slug) {
+  const app = await getApp(env, slug);
+  if (!app) return notFound();
+  const obj = await env.APPS.get(`apps/${slug}/minutes.md`);
+  if (!obj) return notFound();
+  return new Response(obj.body, {
+    headers: {
+      "Content-Type": "text/markdown; charset=utf-8",
+      "Cache-Control": "public, max-age=86400",
+      "X-Content-Type-Options": "nosniff",
     },
   });
 }

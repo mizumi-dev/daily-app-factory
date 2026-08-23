@@ -47,7 +47,7 @@ const AXIS_LABELS = {
 
 function usage() {
   console.log(`使い方:
-  node scripts/generate.mjs --brief "お題" [--axis laugh|lighten|productivity|insight|decide|wonder|duo] [--model deepseek-v4-pro] [--impl-model deepseek-v4-flash] [--style v1|v2]
+  node scripts/generate.mjs --brief "お題" [--axis laugh|lighten|productivity|insight|decide|wonder|duo] [--model deepseek-v4-pro] [--impl-model deepseek-v4-flash] [--style v1|v2|v3]
 
   --brief   お題テキスト（必須）
   --axis    軸（省略時は曜日から自動割り当て）
@@ -338,7 +338,7 @@ async function planApp({ key, model, brief, axis, catalog }) {
 }
 
 async function implementApp({ key, model, spec, brief, axis, style }) {
-  const styleFile = style === "v1" ? "house-style.md" : "house-style-v2.md";
+  const styleFile = style === "v1" ? "house-style.md" : style === "v3" ? "house-style-v3.md" : "house-style-v2.md";
   const houseStyle = readFileSync(join(ROOT, "config", styleFile), "utf8");
   const instructions = `あなたは「日刊アプリ工房」の実装担当。企画書（spec）とハウススタイル規約に従って、単一 HTML ファイルのアプリを実装してください。
 
