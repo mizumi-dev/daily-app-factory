@@ -1,6 +1,6 @@
 // 日次パイプライン: 起動 → お題決定 → 企画 → 実装 → 検証 → 公開
 import { chat, estimateCost, PRO, FLASH } from "./deepseek.js";
-import { HOUSE_STYLE } from "./house-style.js";
+import { HOUSE_STYLE_V1, HOUSE_STYLE_V2 } from "./house-style.js";
 import { mechanicalCheck, aiCheck, extractJsonObject } from "./verify.js";
 import { sendNotify } from "./notify.js";
 
@@ -165,7 +165,7 @@ async function implementOnce(env, { spec, directive, axis, failures, costState, 
   const system = `あなたは「日刊アプリ工房」の実装担当。企画書とハウススタイル規約に従い、単一 HTML ファイルを実装してください。
 企画書の success_check の全項目を必ず満たす実装にすること（各項目をコード内でどう満たすかを実装前に考える）。
 ===== ハウススタイル規約（固定） =====
-${HOUSE_STYLE}
+${(env.HOUSE_STYLE_VERSION === "v2" ? HOUSE_STYLE_V2 : HOUSE_STYLE_V1)}
 ===== 出力ルール =====
 - 出力は完成した HTML コードのみ。コードフェンスや説明文は付けない。
 - フッターに「生成日: ${jstParts().date}」「お題の出所: ${directive.source === "user" ? "ユーザー投稿" : "自動"}」を必ず含める。

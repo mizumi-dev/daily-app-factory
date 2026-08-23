@@ -76,6 +76,8 @@ Turnstile は現在テストキー（常に通過）。本番公開前に Cloudf
 ハウススタイル規約は [config/house-style.md](config/house-style.md) にあり、毎回の生成プロンプトの固定部分として使われる。
 モデル分担は、企画（spec 生成）が `deepseek-v4-pro`（思考モード）、実装（HTML 生成）が `deepseek-v4-flash`（非思考・コスト優先）を基本とし、**実装が2回検証に失敗した場合のみ最終試行を `deepseek-v4-pro`（非思考）にエスカレーション**する。必要なら `--model` / `--impl-model` で上書きできる。
 
+ハウススタイル規約には v2（試行版）がある。切り替えはローカル生成が `--style v2`、パイプラインは環境変数 `HOUSE_STYLE_VERSION=v2`（未設定なら v1）。v2 はブラウザ標準 API の許可・状態保存の拡張（URL hash / IndexedDB）・サイズ目安の緩和（15〜60KB）・演出の積極化が差分で、安全性の要（外部通信禁止・単一 HTML・200KB 上限）は維持。
+
 ## アプリごとのフィードバック
 
 生成したアプリへの意見は、そのアプリの `generated/<日付>-<slug>/feedback.md` に1件ずつ記録する（規約には一般化しない）。
