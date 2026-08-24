@@ -86,6 +86,7 @@ select.sort{background:var(--bg-soft);border:1.5px solid var(--border);border-ra
 .btn{flex:1;text-align:center;text-decoration:none;border:1.5px solid var(--border);background:transparent;color:var(--text);border-radius:999px;padding:8px 0;font-size:0.85rem;cursor:pointer;font-family:inherit;transition:all .18s ease}.btn:hover{border-color:var(--accent);color:var(--accent)}
 .review{display:flex;align-items:center;gap:6px;font-size:0.82rem;color:var(--text-soft);cursor:pointer;user-select:none}.review input{accent-color:var(--ok);width:16px;height:16px;cursor:pointer}.review.done{color:var(--ok)}
 .fb-badge{font-size:0.72rem;background:rgba(255,140,66,0.16);color:#ffb27a;border:1px solid rgba(255,140,66,0.4);border-radius:999px;padding:2px 9px;text-decoration:none}
+.fav-btn{background:transparent;border:none;color:var(--text-soft);font-size:1rem;line-height:1;cursor:pointer;margin-left:auto;padding:2px 4px}.fav-btn:hover{color:var(--accent)}.fav-btn.on{color:#ff5b7f}
 .empty{text-align:center;color:var(--text-soft);padding:48px 0}footer{margin-top:28px;text-align:center;font-size:0.75rem;color:var(--text-soft);opacity:0.7}
 .pager{display:flex;justify-content:center;align-items:center;gap:12px;margin-top:18px}.pager button{border:1px solid var(--border);background:var(--panel);color:var(--text);border-radius:999px;padding:7px 18px;font-size:0.85rem;cursor:pointer;font-family:inherit}.pager button:hover{border-color:var(--accent);color:var(--accent)}.pager-info{font-size:0.8rem;color:var(--text-soft)}
 .style-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;width:100%;border-top:1px solid var(--border);padding-top:10px;margin-top:4px}.style-badge{font-size:0.8rem;color:var(--text-soft)}.style-badge b{color:var(--accent)}.style-select{background:var(--bg-soft);border:1.5px solid var(--border);border-radius:10px;padding:6px 10px;font-size:0.82rem;color:var(--text);font-family:inherit;outline:none}.style-msg{font-size:0.78rem;color:var(--text-soft)}
@@ -142,9 +143,12 @@ const SCRIPT = `<script>
   var APPS = JSON.parse(document.getElementById("apps-data").textContent);
   var AXIS_LABELS = __AXIS_LABELS__;
   var AXIS_COLORS = __AXIS_COLORS__;
-  var state = { q: "", axes: [], sort: "new", page: 1 };
+  var state = { q: "", axes: [], sort: "new", page: 1, favOnly: false };
   var PAGE_SIZE = 24;
   var REVIEW_KEY = "daf-review-v1";
+  var FAV_KEY = "daf-fav-v1";
+  var favs = (function(){ try { return JSON.parse(localStorage.getItem(FAV_KEY) || "{}"); } catch(e){ return {}; } })();
+  function saveFavs(){ try { localStorage.setItem(FAV_KEY, JSON.stringify(favs)); } catch(e){} }
   var grid = document.getElementById("grid");
   var pager = document.getElementById("pager");
   var modal = document.getElementById("modal");
@@ -157,13 +161,18 @@ const SCRIPT = `<script>
   var PLANNER_LABELS = { deepseek: "DeepSeek", openai: "OpenAI", anthropic: "Claude", gemini: "Gemini" };
   function plannerLabel(pair){ return String(pair || "").split("+").map(function(id){ return PLANNER_LABELS[id] || id; }).join("+"); }
   function renderChips(){
-    var html = "";
+    var html = '<button class="chip' + (state.favOnly ? " on" : "") + '" id="favChipDash" type="button">♥ お気に入り</button>';
     Object.keys(AXIS_LABELS).forEach(function(a){
       var on = state.axes.indexOf(a) >= 0 ? " on" : "";
       html += '<button class="chip' + on + '" data-axis="' + a + '" type="button">' + AXIS_LABELS[a] + '</button>';
     });
     document.getElementById("chips").innerHTML = html;
-    document.querySelectorAll("#chips .chip").forEach(function(c){
+    document.getElementById("favChipDash").addEventListener("click", function(){
+      state.favOnly = !state.favOnly;
+      state.page = 1;
+      renderChips(); render();
+    });
+    document.querySelectorAll("#chips .chip[data-axis]").forEach(function(c){
       c.addEventListener("click", function(){
         var a = c.getAttribute("data-axis");
         var i = state.axes.indexOf(a);
@@ -177,6 +186,7 @@ const SCRIPT = `<script>
     var q = state.q.trim().toLowerCase();
     return APPS.filter(function(a){
       if (state.axes.length && state.axes.indexOf(a.axis) < 0) return false;
+      if (state.favOnly && !favs[a.slug]) return false;
       if (!q) return true;
       var hay = (a.title + " " + a.tagline + " " + a.tags.join(" ") + " " + a.slug).toLowerCase();
       return hay.indexOf(q) >= 0;
@@ -194,7 +204,8 @@ const SCRIPT = `<script>
     var minutes = a.hasMinutes ? '<a class="fb-badge" href="' + esc(a.appPath) + '/minutes.md" target="_blank" rel="noopener">議事録</a>' : "";
     var plannerText = a.planner ? "企画: " + plannerLabel(a.planner) + (a.adopted ? "（" + plannerLabel(a.adopted) + "案採用）" : "") : "";
     return '<article class="card">' +
-      '<div class="card-top"><span class="axis-badge" style="background:' + color + '">' + esc(AXIS_LABELS[a.axis] || a.axis) + '</span>' + fb + minutes + '</div>' +
+      '<div class="card-top"><span class="axis-badge" style="background:' + color + '">' + esc(AXIS_LABELS[a.axis] || a.axis) + '</span>' + fb + minutes +
+      '<button class="fav-btn' + (favs[a.slug] ? " on" : "") + '" data-fav="' + esc(a.slug) + '" aria-label="お気に入り" type="button">♥</button></div>' +
       '<h2>' + esc(a.title) + '</h2>' +
       '<p class="tagline">' + esc(a.tagline) + '</p>' +
       '<div class="tags">' + a.tags.map(function(t){ return '<span class="tag">' + esc(t) + '</span>'; }).join("") + '</div>' +
@@ -281,6 +292,15 @@ const SCRIPT = `<script>
   document.getElementById("modalClose").addEventListener("click", function(){ modal.classList.remove("open"); modalFrame.src = "about:blank"; });
   modal.addEventListener("click", function(e){ if (e.target === modal) { modal.classList.remove("open"); modalFrame.src = "about:blank"; } });
   document.addEventListener("keydown", function(e){ if (e.key === "Escape") { modal.classList.remove("open"); modalFrame.src = "about:blank"; } });
+  document.addEventListener("click", function(e){
+    var b = e.target.closest ? e.target.closest("[data-fav]") : null;
+    if (!b) return;
+    var slug = b.getAttribute("data-fav");
+    if (favs[slug]) { delete favs[slug]; b.classList.remove("on"); }
+    else { favs[slug] = 1; b.classList.add("on"); }
+    saveFavs();
+    if (state.favOnly) render();
+  });
   renderChips(); render();
   var LIVE_API = "https://daily-app-factory.daily-app-factory.workers.dev/api/apps";
   function toLive(a){

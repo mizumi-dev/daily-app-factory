@@ -39,6 +39,7 @@ function card(app) {
       <div class="card-top">
         <span class="axis-badge" style="background:${color}">${esc(AXIS_LABELS[app.axis] || app.axis)}</span>
         <span class="origin">${app.origin === "auto" ? "自動" : "ユーザー投稿"}</span>
+        <button class="fav-btn" data-fav="${esc(app.slug)}" aria-label="お気に入り" type="button">♥</button>
       </div>
       <h2><a href="/app/${esc(app.slug)}" target="_blank" rel="noopener">${esc(app.title)}</a></h2>
       <p class="tagline">${esc(app.tagline)}</p>
@@ -124,6 +125,8 @@ select.sort{background:var(--bg-soft);border:1.5px solid var(--border);border-ra
 .card-top{display:flex;align-items:center;gap:8px}
 .axis-badge{font-size:0.7rem;font-weight:700;padding:3px 10px;border-radius:999px;color:#111}
 .origin{font-size:0.72rem;color:var(--text-soft)}
+.fav-btn{background:transparent;border:none;color:var(--text-soft);font-size:1rem;line-height:1;cursor:pointer;margin-left:auto;padding:2px 4px;transition:transform .15s ease}
+.fav-btn:hover{color:var(--accent);transform:scale(1.15)}.fav-btn.on{color:#ff5b7f}
 h2{font-size:1.02rem;line-height:1.4}h2 a{color:inherit;text-decoration:none}h2 a:hover{color:var(--accent)}
 .tagline{color:var(--text-soft);font-size:0.85rem;min-height:2.6em}
 .tags{display:flex;flex-wrap:wrap;gap:5px}.tag{font-size:0.72rem;color:var(--text-soft);background:var(--bg-soft);border:1px solid var(--border);border-radius:999px;padding:2px 9px;text-decoration:none}.tag:hover{color:var(--accent)}
@@ -135,6 +138,18 @@ h2{font-size:1.02rem;line-height:1.4}h2 a{color:inherit;text-decoration:none}h2 
 .clear{display:inline-block;margin-bottom:8px;font-size:0.8rem;color:var(--accent)}
 .brief-box{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:16px 18px;margin-bottom:16px}
 .style-badge{display:inline-block;margin-top:8px;font-size:0.72rem;color:var(--text-soft);border:1px solid var(--border);border-radius:999px;padding:3px 12px}
+.owner-box{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:12px 16px;margin-bottom:16px}
+.owner-box summary{cursor:pointer;font-size:0.9rem;font-weight:600;color:var(--text-soft)}
+.owner-box summary:hover{color:var(--accent)}
+.owner-box .sub{color:var(--text-soft);font-size:0.78rem;margin:6px 0}
+.owner-box textarea{width:100%;min-height:64px;background:var(--bg-soft);border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;font-size:0.9rem;color:var(--text);font-family:inherit;resize:vertical;outline:none}
+.owner-box textarea:focus{border-color:var(--accent)}
+.owner-row{display:flex;gap:10px;align-items:center;margin-top:8px;flex-wrap:wrap}
+.owner-row .btn-submit{background:var(--accent);color:#1a130a;border:none;border-radius:999px;padding:8px 20px;font-size:0.85rem;font-weight:700;cursor:pointer;font-family:inherit}
+.owner-row .btn-submit:hover{filter:brightness(1.08)}
+#ownerMsg{font-size:0.8rem;color:var(--text-soft)}#ownerMsg a{color:var(--accent)}
+.fav-bar{display:none;justify-content:center;align-items:center;gap:10px;margin-bottom:10px;font-size:0.8rem;color:var(--text-soft)}
+.fav-bar a{color:var(--accent)}
 .brief-box h2{font-size:1rem;margin-bottom:2px}
 .brief-box .sub{color:var(--text-soft);font-size:0.8rem;margin-bottom:10px}
 #briefForm{display:flex;flex-direction:column;gap:10px}
@@ -157,6 +172,15 @@ footer{margin-top:30px;text-align:center;font-size:0.75rem;color:var(--text-soft
     <p class="sub">AI が毎日 1 本作る、動く単一 HTML アプリのギャラリー（全 ${total} 本）</p>
     <span class="style-badge">ハウススタイル: ${esc(style || "v2")}</span>
   </header>
+  <details class="owner-box">
+    <summary>オーナー用: プロンプトから直接生成</summary>
+    <p class="sub">管理トークンが必要です（初回のみ入力・ブラウザに保存）。実行すると即座に生成・公開されます（1回あたり数セント程度）。</p>
+    <textarea id="ownerPrompt" maxlength="300" placeholder="例: 3分後にそっと消えるメモ（最大300文字）" aria-label="オーナー用プロンプト"></textarea>
+    <div class="owner-row">
+      <button id="ownerRun" class="btn-submit" type="button">生成する</button>
+      <span id="ownerMsg" role="status"></span>
+    </div>
+  </details>
   <section class="brief-box">
     <h2>お題を投げる</h2>
     <p class="sub">AI が次の制作で優先的に作ります（1日1本・投稿順）。追跡ページで進み具合を見られます。</p>
@@ -190,16 +214,18 @@ footer{margin-top:30px;text-align:center;font-size:0.75rem;color:var(--text-soft
         <option value="rising"${params.sort === "rising" ? " selected" : ""}>急上昇</option>
         <option value="random"${params.sort === "random" ? " selected" : ""}>ランダム</option>
       </select>
+      <button class="chip" id="favChip" type="button">♥ お気に入り</button>
     </form>
   </section>
   <nav class="chips" aria-label="軸フィルタ">${axisChips}</nav>
   ${tagFacets ? `<nav class="chips" aria-label="タグフィルタ">${tagFacets}</nav>` : ""}
   ${originFacets ? `<nav class="chips" aria-label="出所フィルタ">${originFacets}</nav>` : ""}
   ${hasFilter ? `<a class="clear" href="/">すべてのフィルタを解除</a>` : ""}
-  <section class="grid">
+  <div class="fav-bar" id="favBar"><span>♥ お気に入り表示中（全アプリから）</span><a href="/">すべて表示に戻る</a></div>
+  <section class="grid" id="galleryGrid">
     ${apps.length ? apps.map(card).join("") : `<p class="empty">該当するアプリがありません。</p>`}
   </section>
-  <nav class="pager" aria-label="ページ送り">
+  <nav class="pager" id="galleryPager" aria-label="ページ送り">
     ${prevHref ? `<a rel="prev" href="${prevHref}">← 前へ</a>` : ""}
     <span class="sub">${page} / ${totalPages}</span>
     ${nextHref ? `<a rel="next" href="${nextHref}">次へ →</a>` : ""}
@@ -244,6 +270,92 @@ document.getElementById("sort").addEventListener("change", function(){
   u.searchParams.set("sort", this.value);
   u.searchParams.delete("page");
   location.href = u;
+});
+// お気に入り（localStorage）
+var FAV_KEY = "daf-fav-v1";
+var favs = (function(){ try { return JSON.parse(localStorage.getItem(FAV_KEY) || "{}"); } catch(e){ return {}; } })();
+function saveFavs(){ try { localStorage.setItem(FAV_KEY, JSON.stringify(favs)); } catch(e){} }
+function esc(s){ return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
+document.querySelectorAll("[data-fav]").forEach(function(b){
+  if (favs[b.getAttribute("data-fav")]) b.classList.add("on");
+});
+document.addEventListener("click", function(e){
+  var b = e.target.closest ? e.target.closest("[data-fav]") : null;
+  if (!b) return;
+  var slug = b.getAttribute("data-fav");
+  var on = favs[slug];
+  if (on) { delete favs[slug]; b.classList.remove("on"); b.setAttribute("aria-label", "お気に入り"); }
+  else { favs[slug] = 1; b.classList.add("on"); b.setAttribute("aria-label", "お気に入り解除"); }
+  saveFavs();
+  var bar = document.getElementById("favBar");
+  if (!on && bar && bar.style.display === "flex") {
+    var card = b.closest(".card");
+    if (card) card.remove();
+  }
+});
+// お気に入り一覧（全アプリから取得して表示）
+var AXIS_C = { laugh:"#ffb347", lighten:"#7fd6a8", productivity:"#4da3ff", insight:"#c79bff", decide:"#ff8c66", wonder:"#5be0d6", duo:"#ff7fc3" };
+var AXIS_L = { laugh:"笑わせる", lighten:"心を軽くする", productivity:"生産性", insight:"気づき", decide:"決める", wonder:"好奇心", duo:"ふたりで" };
+var PL = { deepseek:"DeepSeek", openai:"OpenAI", anthropic:"Claude", gemini:"Gemini" };
+function pLabel(p){ return String(p || "").split("+").map(function(x){ return PL[x] || x; }).join("+"); }
+function fmtB(n){ return n >= 1024 ? (n / 1024).toFixed(1) + "KB" : n + "B"; }
+function favCard(a){
+  var color = AXIS_C[a.axis] || "#999";
+  var planner = a.planner ? "企画: " + pLabel(a.planner) + (a.adopted_planner ? "（" + pLabel(a.adopted_planner) + "案採用）" : "") : "";
+  var mins = a.has_minutes ? '<a class="minutes" href="/app/' + esc(a.slug) + '/minutes.md">議事録</a>' : "";
+  return '<article class="card">' +
+    '<a class="thumb" href="/app/' + esc(a.slug) + '" target="_blank" rel="noopener"><img src="/app/' + esc(a.slug) + '/thumb.svg" alt="' + esc(a.title) + 'のサムネイル" loading="lazy" width="600" height="315"></a>' +
+    '<div class="card-body"><div class="card-top"><span class="axis-badge" style="background:' + color + '">' + esc(AXIS_L[a.axis] || a.axis) + '</span>' +
+    '<span class="origin">' + (a.origin === "auto" ? "自動" : "ユーザー投稿") + '</span>' +
+    '<button class="fav-btn on" data-fav="' + esc(a.slug) + '" aria-label="お気に入り解除" type="button">♥</button></div>' +
+    '<h2><a href="/app/' + esc(a.slug) + '" target="_blank" rel="noopener">' + esc(a.title) + '</a></h2>' +
+    '<p class="tagline">' + esc(a.tagline || "") + '</p>' +
+    '<div class="tags">' + (a.tags || []).slice(0, 3).map(function(t){ return '<span class="tag">' + esc(t) + '</span>'; }).join("") + '</div>' +
+    '<div class="meta">' + mins + (planner ? '<span>' + esc(planner) + '</span>' : "") + '<span>' + esc((a.published_at || "").slice(0, 10)) + '</span><span>' + fmtB(a.bytes) + '</span></div>' +
+    '</div></article>';
+}
+document.getElementById("favChip").addEventListener("click", function(){
+  var grid = document.getElementById("galleryGrid");
+  var bar = document.getElementById("favBar");
+  if (bar.style.display === "flex") { location.href = "/"; return; }
+  grid.innerHTML = '<p class="empty">読み込み中...</p>';
+  fetch("/api/apps?per_page=200").then(function(r){ return r.json(); }).then(function(d){
+    var list = (d && d.apps || []).filter(function(a){ return favs[a.slug]; });
+    bar.style.display = "flex";
+    document.getElementById("galleryPager").style.display = "none";
+    grid.innerHTML = list.length ? list.map(favCard).join("") : '<p class="empty">お気に入りはまだありません。カードの ♥ を押すと追加できます。</p>';
+  }).catch(function(){ grid.innerHTML = '<p class="empty">読み込みに失敗しました。</p>'; });
+});
+// オーナー用プロンプト（管理トークン必須）
+document.getElementById("ownerRun").addEventListener("click", function(){
+  var text = document.getElementById("ownerPrompt").value.trim();
+  var msg = document.getElementById("ownerMsg");
+  if (!text) { msg.textContent = "プロンプトを入力してください"; return; }
+  var token = "";
+  try { token = localStorage.getItem("daf-admin-token") || ""; } catch(e){}
+  if (!token) {
+    token = window.prompt("管理トークン（ADMIN_TOKEN）を入力してください");
+    if (!token) { msg.textContent = "キャンセルしました"; return; }
+    try { localStorage.setItem("daf-admin-token", token); } catch(e){}
+  }
+  msg.textContent = "生成中です（数分かかります）...";
+  fetch("/_run", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-admin-token": token },
+    body: JSON.stringify({ brief: text, style: "" })
+  }).then(function(r){
+    return r.json().catch(function(){ return {}; }).then(function(d){ return { ok: r.ok, status: r.status, d: d }; });
+  }).then(function(res){
+    if (res.ok && res.d && res.d.published) {
+      msg.innerHTML = '公開しました: <a href="/app/' + esc(res.d.published) + '" target="_blank" rel="noopener">' + esc(res.d.published) + '</a>';
+      document.getElementById("ownerPrompt").value = "";
+    } else if (res.status === 403) {
+      try { localStorage.removeItem("daf-admin-token"); } catch(e){}
+      msg.textContent = "管理トークンが無効です。もう一度お試しください。";
+    } else {
+      msg.textContent = "エラー: " + (res.d.error || res.status);
+    }
+  }).catch(function(){ msg.textContent = "通信エラーが発生しました"; });
 });
 </script>
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
