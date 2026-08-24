@@ -45,10 +45,10 @@
 - 対応済みにする: `npm run feedback -- resolve <slug> <番号>`（番号は list で確認）
 - 集計一覧は `feedback/index.md` に自動反映される
 
-## ダッシュボード
+## まとめページ（旧ダッシュボード）
 
-- 生成アプリの一覧は `npm run dashboard` で `dashboard/index.html` に生成する（GitHub Pages でも公開）。
-- アプリを追加・更新したら必ず `npm run dashboard` を実行してからコミットする。
+- 生成アプリの一覧・検索・お気に入り・確認済み管理・規約切替・オーナー用プロンプトはギャラリー（Worker の `/`）に統合済み。
+- `dashboard/index.html` はギャラリーへのリダイレクトのみ。`npm run dashboard` / `scripts/dashboard.mjs` は廃止。
 
 ## Phase 1: ギャラリー
 

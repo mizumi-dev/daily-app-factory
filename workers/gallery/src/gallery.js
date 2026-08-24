@@ -45,6 +45,11 @@ function card(app) {
       <p class="tagline">${esc(app.tagline)}</p>
       <div class="tags">${app.tags.slice(0, 3).map((t) => `<a class="tag" href="/?tag=${esc(encodeURIComponent(t))}">${esc(t)}</a>`).join("")}</div>
       <div class="meta">${minutesLink}${plannerText ? `<span>${esc(plannerText)}</span>` : ""}<span>${esc(app.published_at.slice(0, 10))}</span><span>${fmtBytes(app.bytes)}</span></div>
+      <div class="card-actions">
+        <button class="btn" data-preview="/app/${esc(app.slug)}" data-title="${esc(app.title)}" type="button">プレビュー</button>
+        <a class="btn" href="/app/${esc(app.slug)}" target="_blank" rel="noopener">開く</a>
+        <label class="review"><input type="checkbox" data-review="${esc(app.slug)}">確認済み</label>
+      </div>
     </div>
   </article>`;
 }
@@ -132,12 +137,26 @@ h2{font-size:1.02rem;line-height:1.4}h2 a{color:inherit;text-decoration:none}h2 
 .tags{display:flex;flex-wrap:wrap;gap:5px}.tag{font-size:0.72rem;color:var(--text-soft);background:var(--bg-soft);border:1px solid var(--border);border-radius:999px;padding:2px 9px;text-decoration:none}.tag:hover{color:var(--accent)}
 .meta{display:flex;gap:8px;font-size:0.75rem;color:var(--text-soft);margin-top:auto}
 .meta a{color:var(--accent);text-decoration:none}.meta a:hover{text-decoration:underline}
+.card-actions{display:flex;gap:8px;align-items:center;margin-top:4px;flex-wrap:wrap}
+.card-actions .btn{flex:1;text-align:center;text-decoration:none;border:1.5px solid var(--border);background:transparent;color:var(--text);border-radius:999px;padding:7px 0;font-size:0.82rem;cursor:pointer;font-family:inherit;transition:all .18s ease;min-width:70px}
+.card-actions .btn:hover{border-color:var(--accent);color:var(--accent)}
+.review{display:flex;align-items:center;gap:6px;font-size:0.8rem;color:var(--text-soft);cursor:pointer;user-select:none}
+.review input{accent-color:#7fd6a8;width:15px;height:15px;cursor:pointer}
+.review.done{color:#7fd6a8}
 .empty{text-align:center;color:var(--text-soft);padding:48px 0}
 .pager{display:flex;justify-content:center;gap:14px;margin-top:22px}
 .pager a{color:var(--accent);text-decoration:none;border:1px solid var(--border);border-radius:999px;padding:7px 18px}
 .clear{display:inline-block;margin-bottom:8px;font-size:0.8rem;color:var(--accent)}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,0.72);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}.modal.open{display:flex}
+.modal-box{width:min(880px,100%);height:min(760px,90vh);background:var(--bg);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;border:1px solid var(--border)}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--bg-soft)}.modal-title{font-size:0.9rem;font-weight:600}.modal-close{border:1px solid var(--border);background:transparent;color:var(--text);border-radius:999px;padding:5px 14px;cursor:pointer;font-family:inherit}
+.modal-frame{flex:1;border:0;width:100%;background:#fff}
 .brief-box{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:16px 18px;margin-bottom:16px}
 .style-badge{display:inline-block;margin-top:8px;font-size:0.72rem;color:var(--text-soft);border:1px solid var(--border);border-radius:999px;padding:3px 12px}
+.style-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;margin-top:8px}
+.style-select{background:var(--bg-soft);border:1.5px solid var(--border);border-radius:10px;padding:4px 8px;font-size:0.78rem;color:var(--text);font-family:inherit;outline:none}
+.style-msg{font-size:0.75rem;color:var(--text-soft)}
+.progress-wrap{margin:12px auto 0;max-width:420px}.progress-bar{height:8px;border-radius:999px;background:var(--panel);overflow:hidden}.progress-fill{height:100%;width:0%;background:linear-gradient(90deg,#ff8c42,#ffb347);border-radius:999px;transition:width .3s ease}.progress-label{font-size:0.78rem;color:var(--text-soft);margin-top:6px}
 .owner-box{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:12px 16px;margin-bottom:16px}
 .owner-box summary{cursor:pointer;font-size:0.9rem;font-weight:600;color:var(--text-soft)}
 .owner-box summary:hover{color:var(--accent)}
@@ -162,7 +181,7 @@ h2{font-size:1.02rem;line-height:1.4}h2 a{color:inherit;text-decoration:none}h2 
 #briefResult{font-size:0.85rem;margin-top:8px;color:var(--text-soft)}
 #briefResult a{color:var(--accent)}
 footer{margin-top:30px;text-align:center;font-size:0.75rem;color:var(--text-soft);opacity:0.7}
-@media(max-width:480px){.grid{grid-template-columns:1fr}}
+@media(max-width:480px){.grid{grid-template-columns:1fr}.modal{padding:8px}}
 </style>
 </head>
 <body>
@@ -170,7 +189,19 @@ footer{margin-top:30px;text-align:center;font-size:0.75rem;color:var(--text-soft
   <header>
     <h1>日刊アプリ工房</h1>
     <p class="sub">AI が毎日 1 本作る、動く単一 HTML アプリのギャラリー（全 ${total} 本）</p>
-    <span class="style-badge">ハウススタイル: ${esc(style || "v2")}</span>
+    <div class="style-row">
+      <span class="style-badge" style="margin:0">ハウススタイル: <b id="styleNow">${esc(style || "v2")}</b></span>
+      <select id="styleSelect" class="style-select" aria-label="ハウススタイル規約の切替">
+        <option value="v1">v1（基本）</option>
+        <option value="v2">v2（緩め・既定）</option>
+        <option value="v3">v3（厳しめ）</option>
+      </select>
+      <span class="style-msg" id="styleMsg" role="status"></span>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <p class="progress-label" id="progressLabel"></p>
+    </div>
   </header>
   <details class="owner-box">
     <summary>オーナー用: プロンプトから直接生成</summary>
@@ -231,6 +262,15 @@ footer{margin-top:30px;text-align:center;font-size:0.75rem;color:var(--text-soft
     ${nextHref ? `<a rel="next" href="${nextHref}">次へ →</a>` : ""}
   </nav>
   <footer>日刊アプリ工房 · このサイトのアプリは AI が自動生成しています</footer>
+</div>
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-label="アプリプレビュー">
+  <div class="modal-box">
+    <div class="modal-head">
+      <span class="modal-title" id="modalTitle"></span>
+      <button class="modal-close" id="modalClose" type="button">閉じる</button>
+    </div>
+    <iframe class="modal-frame" id="modalFrame" sandbox="allow-scripts" title="アプリプレビュー"></iframe>
+  </div>
 </div>
 <script>
 var turnstileToken = "";
@@ -312,6 +352,11 @@ function favCard(a){
     '<p class="tagline">' + esc(a.tagline || "") + '</p>' +
     '<div class="tags">' + (a.tags || []).slice(0, 3).map(function(t){ return '<span class="tag">' + esc(t) + '</span>'; }).join("") + '</div>' +
     '<div class="meta">' + mins + (planner ? '<span>' + esc(planner) + '</span>' : "") + '<span>' + esc((a.published_at || "").slice(0, 10)) + '</span><span>' + fmtB(a.bytes) + '</span></div>' +
+    '<div class="card-actions">' +
+      '<button class="btn" data-preview="/app/' + esc(a.slug) + '" data-title="' + esc(a.title) + '" type="button">プレビュー</button>' +
+      '<a class="btn" href="/app/' + esc(a.slug) + '" target="_blank" rel="noopener">開く</a>' +
+      '<label class="review"><input type="checkbox" data-review="' + esc(a.slug) + '">確認済み</label>' +
+    '</div>' +
     '</div></article>';
 }
 document.getElementById("favChip").addEventListener("click", function(){
@@ -320,6 +365,7 @@ document.getElementById("favChip").addEventListener("click", function(){
   if (bar.style.display === "flex") { location.href = "/"; return; }
   grid.innerHTML = '<p class="empty">読み込み中...</p>';
   fetch("/api/apps?per_page=200").then(function(r){ return r.json(); }).then(function(d){
+    if (d && Array.isArray(d.apps)) ALL_APPS = d.apps;
     var list = (d && d.apps || []).filter(function(a){ return favs[a.slug]; });
     bar.style.display = "flex";
     document.getElementById("galleryPager").style.display = "none";
@@ -356,6 +402,86 @@ document.getElementById("ownerRun").addEventListener("click", function(){
       msg.textContent = "エラー: " + (res.d.error || res.status);
     }
   }).catch(function(){ msg.textContent = "通信エラーが発生しました"; });
+});
+// 確認済み管理 + 進捗（全アプリから集計）
+var REVIEW_KEY = "daf-review-v1";
+var review = (function(){ try { return JSON.parse(localStorage.getItem(REVIEW_KEY) || "{}"); } catch(e){ return {}; } })();
+function saveReview(){ try { localStorage.setItem(REVIEW_KEY, JSON.stringify(review)); } catch(e){} }
+var ALL_APPS = null;
+function updateProgress(){
+  if (!ALL_APPS || !ALL_APPS.length) { document.getElementById("progressLabel").textContent = ""; return; }
+  var done = ALL_APPS.filter(function(a){ return review[a.slug]; }).length;
+  var pct = Math.round(done / ALL_APPS.length * 100);
+  document.getElementById("progressFill").style.width = pct + "%";
+  document.getElementById("progressLabel").textContent = "確認済み: " + done + " / " + ALL_APPS.length + "（" + pct + "%）";
+}
+document.querySelectorAll("[data-review]").forEach(function(c){
+  if (review[c.getAttribute("data-review")]) {
+    c.checked = true;
+    var l = c.closest(".review");
+    if (l) l.classList.add("done");
+  }
+});
+document.addEventListener("change", function(e){
+  var c = e.target.closest ? e.target.closest("[data-review]") : null;
+  if (!c) return;
+  review[c.getAttribute("data-review")] = c.checked;
+  saveReview();
+  var l = c.closest(".review");
+  if (l) l.classList.toggle("done", c.checked);
+  updateProgress();
+});
+fetch("/api/apps?per_page=200").then(function(r){ return r.json(); }).then(function(d){
+  if (d && Array.isArray(d.apps) && d.apps.length) { ALL_APPS = d.apps; updateProgress(); }
+}).catch(function(){});
+// プレビューモーダル
+var modal = document.getElementById("modal");
+var modalFrame = document.getElementById("modalFrame");
+var modalTitle = document.getElementById("modalTitle");
+document.addEventListener("click", function(e){
+  var b = e.target.closest ? e.target.closest("[data-preview]") : null;
+  if (!b) return;
+  modalTitle.textContent = b.getAttribute("data-title") || "";
+  modalFrame.src = b.getAttribute("data-preview");
+  modal.classList.add("open");
+});
+document.getElementById("modalClose").addEventListener("click", function(){ modal.classList.remove("open"); modalFrame.src = "about:blank"; });
+modal.addEventListener("click", function(e){ if (e.target === modal) { modal.classList.remove("open"); modalFrame.src = "about:blank"; } });
+document.addEventListener("keydown", function(e){ if (e.key === "Escape") { modal.classList.remove("open"); modalFrame.src = "about:blank"; } });
+// ハウススタイル切替（管理トークン必須）
+var styleNow = document.getElementById("styleNow");
+var styleSelect = document.getElementById("styleSelect");
+var styleMsg = document.getElementById("styleMsg");
+styleSelect.value = styleNow.textContent || "v2";
+styleSelect.addEventListener("change", function(){
+  var token = "";
+  try { token = localStorage.getItem("daf-admin-token") || ""; } catch(e){}
+  if (!token) {
+    token = window.prompt("規約を変更するには管理トークン（ADMIN_TOKEN）を入力してください");
+    if (!token) { styleSelect.value = styleNow.textContent || "v2"; return; }
+    try { localStorage.setItem("daf-admin-token", token); } catch(e){}
+  }
+  styleMsg.textContent = "変更中...";
+  fetch("/_style", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-admin-token": token },
+    body: JSON.stringify({ style: styleSelect.value })
+  }).then(function(r){
+    return r.json().catch(function(){ return {}; }).then(function(d){ return { ok: r.ok, status: r.status, d: d }; });
+  }).then(function(res){
+    if (res.ok && res.d && res.d.style) {
+      styleNow.textContent = res.d.style;
+      styleSelect.value = res.d.style;
+      styleMsg.textContent = "変更しました（" + res.d.style + "）";
+    } else if (res.status === 403) {
+      try { localStorage.removeItem("daf-admin-token"); } catch(e){}
+      styleMsg.textContent = "管理トークンが無効です。もう一度お試しください。";
+      styleSelect.value = styleNow.textContent || "v2";
+    } else {
+      styleMsg.textContent = "エラー: " + (res.d.error || res.status);
+      styleSelect.value = styleNow.textContent || "v2";
+    }
+  }).catch(function(){ styleMsg.textContent = "通信エラー"; styleSelect.value = styleNow.textContent || "v2"; });
 });
 </script>
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>

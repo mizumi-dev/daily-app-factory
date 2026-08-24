@@ -12,7 +12,6 @@
     "generate": "node scripts/generate.mjs",
     "verify": "node scripts/verify-app.mjs",
     "feedback": "node scripts/feedback.mjs",
-    "dashboard": "node scripts/dashboard.mjs",
     "thumbs": "node scripts/make-thumbs.mjs",
     "seed:local": "node scripts/seed.mjs --local",
     "seed": "node scripts/seed.mjs",
